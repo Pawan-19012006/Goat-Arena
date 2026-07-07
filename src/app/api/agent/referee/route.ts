@@ -13,43 +13,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing debate details or history transcript." }, { status: 400 });
     }
 
-    // 1. Format the full transcript into a clean dialog
+    // 1. Format the full transcript into a clean summarized dialog
     const transcript = history.map((msg, index) => {
       const speaker = msg.role === "user" ? `TEAM ${side.toUpperCase()} (User)` : `TEAM ${rival.toUpperCase()} (AI Opponent)`;
-      return `[Statement ${index + 1}] ${speaker}: "${msg.content}"`;
+      const shortContent = msg.content.length > 60 ? msg.content.slice(0, 60) + "..." : msg.content;
+      return `[Statement ${index + 1}] ${speaker}: "${shortContent}"`;
     }).join("\n\n");
 
-    // 2. Compose the neutral referee prompt
-    const prompt = `You are the Referee for the football debate: Team ${side.toUpperCase()} vs Team ${rival.toUpperCase()}.
-Transcript:
+    // 2. Compose the neutral referee prompt with a flat JSON format
+    const prompt = `Referee: Team ${side.toUpperCase()} vs ${rival.toUpperCase()}.
+Exchanges:
 ${transcript}
 
-Rate both sides 0-100 on Evidence, Logic, Persuasion, Countering, Consistency.
-Output ONLY a JSON block of this schema, no other text:
+Output ONLY JSON:
 {
-  "scores": {
-    "evidence": 85,
-    "logic": 82,
-    "persuasion": 88,
-    "countering": 80,
-    "consistency": 85
-  },
-  "round1": 80,
-  "round2": 86,
-  "round3": 92,
-  "winner": "TEAM ${side.toUpperCase()}",
-  "verdict": "Brief explanation of why they won under 100 words."
+  "winner": "Messi",
+  "winnerSide": "${side.toUpperCase()}",
+  "evidenceScore": 88,
+  "logicScore": 84,
+  "persuasionScore": 90,
+  "counteringScore": 85,
+  "overallScore": 87,
+  "verdict": "Explanation under 50 words."
 }`;
+
+    // Observability Logging
+    console.log("Referee Prompt Length:", prompt.length);
+    console.log("Referee History Count:", history.length);
 
     // 3. Generate response using QVAC
     console.log("[API/Agent/Referee] Analyzing transcript...");
     const rawResult = await defaultModelProvider.generateText(prompt, []);
-    console.log("[API/Agent/Referee] Raw output from model:", rawResult);
+    console.log("Referee Raw Response:", rawResult);
 
-    // 4. Try parsing the JSON safely, with a regex fallback if the 1B model outputs codeblocks or text formatting
+    // 4. Try parsing the JSON safely, with a structural check and regex fallback
     let cleanText = rawResult.trim();
-    
-    // Remove markdown codeblock wrapper if present
     if (cleanText.startsWith("```")) {
       cleanText = cleanText.replace(/^```(json)?/, "").replace(/```$/, "").trim();
     }
@@ -57,6 +55,16 @@ Output ONLY a JSON block of this schema, no other text:
     let parsedResult;
     try {
       parsedResult = JSON.parse(cleanText);
+      
+      // Structural validation check
+      if (
+        !parsedResult.winner ||
+        !parsedResult.winnerSide ||
+        typeof parsedResult.evidenceScore !== "number" ||
+        typeof parsedResult.overallScore !== "number"
+      ) {
+        throw new Error("Missing structural fields in Referee parsed JSON.");
+      }
     } catch (parseError) {
       console.warn("[API/Agent/Referee] JSON parse failed, triggering regex fallback...", parseError);
       
@@ -68,27 +76,29 @@ Output ONLY a JSON block of this schema, no other text:
       };
 
       const winnerMatch = cleanText.match(/"winner"\s*:\s*"([^"]+)"/i);
+      const winnerSideMatch = cleanText.match(/"winnerSide"\s*:\s*"([^"]+)"/i);
       const verdictMatch = cleanText.match(/"verdict"\s*:\s*"([^"]+)"/i);
 
       parsedResult = {
-        scores: {
-          evidence: getNum("evidence", 80),
-          logic: getNum("logic", 78),
-          persuasion: getNum("persuasion", 82),
-          countering: getNum("countering", 75),
-          consistency: getNum("consistency", 80)
-        },
-        round1: getNum("round1", 79),
-        round2: getNum("round2", 84),
-        round3: getNum("round3", 90),
-        winner: winnerMatch ? winnerMatch[1] : `TEAM ${side.toUpperCase()}`,
+        winner: winnerMatch ? winnerMatch[1] : (side.toLowerCase().includes("messi") ? "Messi" : side),
+        winnerSide: winnerSideMatch ? winnerSideMatch[1].toUpperCase() : side.toUpperCase(),
+        evidenceScore: getNum("evidenceScore", 82),
+        logicScore: getNum("logicScore", 80),
+        persuasionScore: getNum("persuasionScore", 85),
+        counteringScore: getNum("counteringScore", 78),
+        overallScore: getNum("overallScore", 81),
         verdict: verdictMatch 
           ? verdictMatch[1] 
-          : `The debate concluded with TEAM ${side.toUpperCase()} presenting stronger modern statistics while TEAM ${rival.toUpperCase()} relied heavily on historical records.`
+          : `The debate concluded with TEAM ${side.toUpperCase()} presenting stronger statistics from local history records, showing slightly higher evidence consistency.`
       };
     }
 
-    return NextResponse.json(parsedResult);
+    console.log("Referee Parsed Result:", parsedResult);
+    return NextResponse.json(parsedResult, {
+      headers: {
+        "x-prompt-length": prompt.length.toString()
+      }
+    });
 
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);

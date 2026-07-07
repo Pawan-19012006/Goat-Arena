@@ -32,7 +32,7 @@ export class MarkdownKeywordRetrieval implements RetrievalProvider {
   /**
    * Scans knowledge base files, scores paragraph blocks, and returns matching context.
    */
-  async retrieve(query: string, limit = 1): Promise<string> {
+  async retrieve(query: string, limit = 3): Promise<string> {
     try {
       if (!fs.existsSync(this.knowledgeDir)) {
         console.warn(`Knowledge directory not found at: ${this.knowledgeDir}`);
@@ -54,6 +54,17 @@ export class MarkdownKeywordRetrieval implements RetrievalProvider {
       // 2. Read all files in directory
       const files = fs.readdirSync(this.knowledgeDir).filter(f => f.endsWith(".md"));
       const rankedBlocks: { text: string; score: number; source: string }[] = [];
+
+      // Detect prioritized player file from query
+      let prioritizedFile = "";
+      const normalizedQuery = query.toLowerCase();
+      for (const file of files) {
+        const nameWithoutExt = file.replace(".md", "").toLowerCase();
+        if (normalizedQuery.includes(nameWithoutExt)) {
+          prioritizedFile = file;
+          break;
+        }
+      }
 
       for (const file of files) {
         const filePath = path.join(this.knowledgeDir, file);
@@ -78,9 +89,16 @@ export class MarkdownKeywordRetrieval implements RetrievalProvider {
             }
           }
 
+          // If block is from the player file matching the query, boost score to ensure relevance
+          if (score > 0 && file === prioritizedFile) {
+            score += 10;
+          }
+
           if (score > 0) {
+            // Truncate individual blocks to 450 characters to save context space
+            const truncatedText = block.length > 450 ? block.slice(0, 450) + "..." : block;
             rankedBlocks.push({
-              text: block.length > 350 ? block.slice(0, 350) + "..." : block,
+              text: truncatedText,
               score: score,
               source: file
             });
@@ -93,13 +111,27 @@ export class MarkdownKeywordRetrieval implements RetrievalProvider {
 
       // 4. Return top blocks formatted with source info
       const selected = rankedBlocks.slice(0, limit);
+      
       if (selected.length === 0) {
+        // Fallback: if no keyword scored any points, but we prioritized a file, return its first block
+        if (prioritizedFile) {
+          const filePath = path.join(this.knowledgeDir, prioritizedFile);
+          const content = fs.readFileSync(filePath, "utf-8");
+          const firstBlock = content.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length > 0)[0];
+          if (firstBlock) {
+            return `[Source: ${prioritizedFile} (Profile Overview)]\n${firstBlock.slice(0, 450)}`;
+          }
+        }
         return "";
       }
 
-      return selected
-        .map(b => `[Source: ${b.source}]\n${b.text}`)
-        .join("\n\n---\n\n");
+      // Join blocks and cap total size to 1300 characters to fit context windows
+      let joinedContext = selected.map(b => `[Source: ${b.source}]\n${b.text}`).join("\n\n---\n\n");
+      if (joinedContext.length > 1300) {
+        joinedContext = joinedContext.slice(0, 1300) + "\n...[Context Truncated]";
+      }
+
+      return joinedContext;
 
     } catch (error) {
       console.error("Retrieval error:", error);
@@ -110,6 +142,6 @@ export class MarkdownKeywordRetrieval implements RetrievalProvider {
 
 // Global default provider
 export const defaultRetrieval = new MarkdownKeywordRetrieval();
-export async function getRetrievalContext(query: string, limit = 1): Promise<string> {
+export async function getRetrievalContext(query: string, limit = 3): Promise<string> {
   return defaultRetrieval.retrieve(query, limit);
 }

@@ -1,4 +1,4 @@
-# GOAT Arena Phase 2 Working Documentation
+# GOAT Arena Phase 3.1 Working Documentation
 
 This document explains the runtime operations, prompt structures, memory persistence, context window optimizations, and API request sequences.
 
@@ -13,15 +13,17 @@ To avoid the ~7-second cold start on every single round:
 
 ---
 
-## 🔎 Retrieval Pipeline & Context Capping (1B Model Optimizations)
+## 🔎 Retrieval Pipeline & prioritized Name Scanning
 
 To fit prompt sizes within a local 1B parameters context window and prevent QVAC `CONTEXT_OVERFLOW` errors:
-1. **Keyword Stripping**: The query is normalized (e.g. "Messi won the World Cup in 2022") and stripped of common stopwords (e.g. "the", "in", "and").
-2. **Snippet-level Capping**: Instead of retrieving large files, the retrieval engine yields **exactly 1 block** (`limit = 1`) of matching text from `knowledge/` Markdown files.
-3. **Text Truncation**: Retrieved snippets are strictly truncated to a maximum of **350 characters** before injection.
-4. **Prompt Character-Length Logging**: Every generation call logs the complete character count of the assembled prompt to `stdout` right before triggering the inference call:
+1. **Name Prioritization**: The search query is scanned for target name tags (e.g. "Ronaldo", "Messi"). If a player profile matches, the retrieval engine prioritize scanning that target file, regardless of which team the user supports.
+2. **Score Boosting**: Match blocks belonging to the prioritized player file receive a `+10` score boost to shoot to the top of the search rankings.
+3. **Profile Fallback**: If no keywords match, the retrieval engine fallback-loads the first block (Profile Accolades Overview) of the prioritized player's file to ensure the AI always has stats.
+4. **Capped snippet-size**: Returns up to **3 matching blocks** (each block sliced at 450 characters), with a combined context ceiling strictly capped at **1300 characters**.
+5. **Prompt Observability Logging**: Every route handler logs prompt size and match contents:
    ```typescript
-   console.log(`[QVAC Prompt Length]: ${totalPromptChars} characters (history length: ${history.length} messages)`);
+   console.log("Prompt Length:", prompt.length);
+   console.log("Retrieved Context:", context);
    ```
 
 ---
@@ -30,89 +32,69 @@ To fit prompt sizes within a local 1B parameters context window and prevent QVAC
 
 All agent route handlers use custom instructions injected with retrieval context:
 
-### 1. Analyst Agent Prompt
-- **Context Restriction**: Receives only the last **1-2 messages** (the current turn) of debate history.
+### 1. AI Tactical Coach Agent
+- **Context Restriction**: Receives only the last **2 messages** of history.
+- **Structure Enforcement**: Prompt instructs the coach to format text strictly under four uppercase headers: `FACTS`, `ACHIEVEMENTS`, `COUNTERPOINTS`, and `TACTICAL ADVICE`.
 - **System Prompt**:
   ```
-  You are AI Coach for Team [SIDE] vs [RIVAL].
-  Context: [RETRIEVED_350_CHAR_CONTEXT]
+  You are the AI Tactical Coach helping Team [SIDE] defeat [RIVAL].
+  Context: [RETRIEVED_CONTEXT_1300_CHARS_MAX]
   History: [LAST_2_MESSAGES]
-  User says: "[ARGUMENT]"
 
-  Provide:
-  1. 1 key strength of user's argument.
-  2. 1 loophole to defend.
-  3. 1 statistical fact to cite.
-  Keep bullets extremely concise. Max 100 words.
+  [INSTRUCTIONS_OR_QUESTION]
+  Never refuse normal football discussion. Keep your response supportive and extremely concise (max 120 words).
+  You MUST format your output in this exact structure, including the headers in caps:
+  FACTS
+  - ...
+  ACHIEVEMENTS
+  - ...
+  COUNTERPOINTS
+  - ...
+  TACTICAL ADVICE
+  - ...
   ```
 
-### 2. Opponent Agent Prompt
-- **Context Restriction**: Receives only the last **1-2 messages** of history. (Maintains full history matching in memory to guard against repeating claims, but does not inject full transcripts into the active prompt window).
+### 2. AI Rival Legend Agent
+- **Context Restriction**: Receives only the last **3 messages** of history.
+- **UsedArguments Memory**: Scans the transcript history dynamically to index previous focus areas. Builds a lightweight `usedArguments` list (e.g. UCL goals, Ballon d'Ors) and instructs the model:
+  ```
+  DO NOT repeat or focus on these already used topics: [USED_ARGUMENTS]. Pivot to a different statistics or trophy angle.
+  ```
 - **System Prompt**:
   ```
   You are a competitive supporter of TEAM [RIVAL] vs [SIDE].
-  Context: [RETRIEVED_350_CHAR_CONTEXT]
-  History: [LAST_2_MESSAGES]
+  Context: [RETRIEVED_CONTEXT_1300_CHARS_MAX]
+  History: [LAST_3_MESSAGES]
   User says: "[ARGUMENT]"
 
-  [REPETITION_GUARD_CLAIMS]
+  [REPETITION_GUARD]
 
-  Write a sharp rebuttal. Keep it under 100 words. No intro fluff. Start directly with the rebuttal.
+  Write a sharp rebuttal. Be competitive and aggressive. Keep it under 100 words. No intro fluff. Start directly with the rebuttal.
   ```
 
-### 3. Referee Agent Prompt
-- **Full History**: Only the Referee receives the **complete 6-message debate transcript**.
-- **System Prompt**:
-  ```
-  You are the Referee for the football debate: Team [SIDE] vs Team [RIVAL].
-  Transcript: [FULL_TRANSCRIPT]
-
-  Rate both sides 0-100 on Evidence, Logic, Persuasion, Countering, Consistency.
-  Output ONLY a JSON block of this schema, no other text:
+### 3. AI Arena Referee Agent
+- **Exchange Summarization**: Instead of raw transcripts, the Referee receives a highly compact summary of the debate exchanges (first 120 characters per user/opponent message), avoiding context overflow.
+- **Output Validation**: Instructs the model to output a flat JSON schema. Safe try/catch wrapper parses the JSON, falls back to a regex fallback parser, and generates a preformatted backup verdict if the model outputs malformed JSON.
+- **Flat JSON Schema**:
+  ```json
   {
-    "scores": {
-      "evidence": 85,
-      "logic": 82,
-      "persuasion": 88,
-      "countering": 80,
-      "consistency": 85
-    },
-    "round1": 80,
-    "round2": 86,
-    "round3": 92,
-    "winner": "TEAM [SIDE]",
-    "verdict": "Brief explanation of why they won under 100 words."
+    "winner": "Messi",
+    "winnerSide": "MESSI",
+    "evidenceScore": 88,
+    "logicScore": 84,
+    "persuasionScore": 90,
+    "counteringScore": 85,
+    "overallScore": 87,
+    "verdict": "Explanation..."
   }
   ```
 
 ---
 
-## 🔄 The 3-Round Debate Sequence
+## ⚙️ Developer Diagnostics (Debug Mode)
 
-The game loop is coordinated in the state engine on `/arena`:
-
-```
-User (locks in Team) ──> pre-loads Model ──> reads Arsenal stats
-                                                    │
-  ┌─────────────────────────────────────────────────┘
-  ▼
-Round 1: User Argument
-  ├──> POST /api/agent/analyst ──> Streams Analyst coaching notes (100 words max)
-  └──> POST /api/agent/opponent ──> Streams Opponent attack rebuttal (100 words max)
-                                                    │
-  ┌─────────────────────────────────────────────────┘
-  ▼
-Round 2: User response to Opponent attack
-  ├──> POST /api/agent/analyst ──> Streams updated coaching notes (100 words max)
-  └──> POST /api/agent/opponent ──> Streams second Opponent counterattack (100 words max)
-                                                    │
-  ┌─────────────────────────────────────────────────┘
-  ▼
-Round 3: User Final Rebuttal
-  └──> POST /api/agent/opponent ──> Streams final Opponent defense (100 words max)
-                                                    │
-  ┌─────────────────────────────────────────────────┘
-  ▼
-Referee Verdict
-  └──> POST /api/agent/referee ──> Receives full transcript ──> Displays Scoreboard & Winner
-```
+The UI includes a toggleable **QVAC Debug Mode** panel in the HUD header. When active, it displays:
+- **Prompt Length**: characters count read from the custom HTTP response header `x-prompt-length`.
+- **Retrieval Size**: characters size read from the HTTP response header `x-retrieval-length`.
+- **Latency Speed**: milliseconds taken to stream the response (computed via `performance.now()`).
+- **Retrieved Clippings**: base64-decoded context text samples read from `x-retrieved-snippets`.

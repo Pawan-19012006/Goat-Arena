@@ -44,20 +44,15 @@ interface PlayerData {
   arsenal: ArsenalItem[];
 }
 
-interface RefereeScores {
-  evidence: number;
-  logic: number;
-  persuasion: number;
-  countering: number;
-  consistency: number;
-}
 
 interface RefereeVerdict {
-  scores: RefereeScores;
-  round1: number;
-  round2: number;
-  round3: number;
   winner: string;
+  winnerSide: string;
+  evidenceScore: number;
+  logicScore: number;
+  persuasionScore: number;
+  counteringScore: number;
+  overallScore: number;
   verdict: string;
 }
 
@@ -147,6 +142,15 @@ function ArenaContent() {
   // Referee Results
   const [refereeResult, setRefereeResult] = useState<RefereeVerdict | null>(null);
   const [selectedFactIds, setSelectedFactIds] = useState<number[]>([]);
+
+  // Debug mode states
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [debugStats, setDebugStats] = useState<{
+    promptLength: number;
+    retrievalLength: number;
+    latency: number;
+    snippets: string;
+  }>({ promptLength: 0, retrievalLength: 0, latency: 0, snippets: "" });
 
   // Refs for scrolling
   const feedEndRef = useRef<HTMLDivElement>(null);
@@ -263,7 +267,7 @@ function ArenaContent() {
   const handleFastForward = () => {
     setTimeLeft(3);
   };
-
+  
   // Helper to read readable streams chunk by chunk
   const streamReader = async (
     endpoint: string,
@@ -274,12 +278,25 @@ function ArenaContent() {
     setStreaming(true);
     setText("");
     let text = "";
+    const startTime = performance.now();
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
+      // Extract telemetry metrics from HTTP headers
+      const pLen = res.headers.get("x-prompt-length");
+      const rLen = res.headers.get("x-retrieval-length");
+      const rSnips = res.headers.get("x-retrieved-snippets");
+
+      setDebugStats(prev => ({
+        ...prev,
+        promptLength: pLen ? parseInt(pLen, 10) : prev.promptLength,
+        retrievalLength: rLen ? parseInt(rLen, 10) : prev.retrievalLength,
+        snippets: rSnips ? decodeURIComponent(rSnips) : prev.snippets
+      }));
 
       if (!res.body) throw new Error("No response stream.");
       
@@ -296,10 +313,12 @@ function ArenaContent() {
       }
     } catch (e) {
       console.error(e);
-      text = "Error generating response locally.";
+      text = endpoint.includes("coach") ? "Coach temporarily unavailable." : "Rival Legend temporarily unavailable.";
       setText(text);
     } finally {
       setStreaming(false);
+      const elapsed = Math.round(performance.now() - startTime);
+      setDebugStats(prev => ({ ...prev, latency: elapsed }));
     }
     return text;
   };
@@ -429,6 +448,7 @@ function ArenaContent() {
     if (!data) return;
     setActiveStep("REFEREE");
     setLoading(true);
+    const startTime = performance.now();
 
     try {
       const historyPayload = debateFeed.map(f => ({
@@ -445,6 +465,14 @@ function ArenaContent() {
       if (!res.ok) throw new Error("Referee grading failed.");
       const scoreData = await res.json() as RefereeVerdict;
       setRefereeResult(scoreData);
+
+      const pLen = res.headers.get("x-prompt-length");
+      setDebugStats({
+        promptLength: pLen ? parseInt(pLen, 10) : 0,
+        retrievalLength: 0,
+        latency: Math.round(performance.now() - startTime),
+        snippets: "N/A (Referee processes debate summary)"
+      });
     } catch (e: unknown) {
       console.error(e);
       setError("Failed to compile local referee results.");
@@ -550,9 +578,19 @@ function ArenaContent() {
 
         {/* Right header: rules badge & status */}
         <div className="col-span-3 flex items-center justify-end gap-3 font-display">
+          <button
+            onClick={() => setIsDebugMode(!isDebugMode)}
+            className={`px-3 py-1 rounded-full border text-[9px] font-bold transition-all ${
+              isDebugMode 
+                ? "bg-blue-900/40 border-blue-500 text-blue-400 shadow shadow-blue-500/10" 
+                : "bg-slate-900 border-slate-850 text-slate-500 hover:border-slate-750"
+            }`}
+          >
+            ⚙️ DEBUG {isDebugMode ? "ON" : "OFF"}
+          </button>
           <div className="flex items-center gap-2 bg-red-950/30 border border-red-900/40 px-2.5 py-1 rounded-full text-red-400 text-[9px] font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            LIVE TRANSMISSION
+            LIVE
           </div>
           <button 
             onClick={() => setActiveStep("ARSENAL")}
@@ -566,8 +604,8 @@ function ArenaContent() {
       {/* 2. Responsive 3-Column layout dashboard */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch min-h-[580px]">
         
-        {/* LEFT COLUMN: RIVAL LEGEND CARD (lg:col-span-3) */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
+        {/* LEFT COLUMN: RIVAL LEGEND CARD (lg:col-span-2) */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-red-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40">
             {/* Red border top highlight */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-red-600/50" />
@@ -585,10 +623,10 @@ function ArenaContent() {
               <div className="flex items-center gap-3 mb-6">
                 <AvatarIcon type={sideId === "messi" ? "ronaldo" : "messi"} size={12} />
                 <div>
-                  <h3 className="text-sm font-black text-white font-display uppercase tracking-wider leading-none">
+                  <h3 className="text-lg font-black text-white font-display uppercase tracking-wider leading-none">
                     {data.rival}
                   </h3>
-                  <span className="text-[9px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
+                  <span className="text-xs text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
                     THE TARGET
                   </span>
                 </div>
@@ -596,10 +634,10 @@ function ArenaContent() {
 
               {/* Stance details */}
               <div className="mb-6">
-                <span className="text-[9px] text-slate-500 font-bold uppercase font-display block mb-1">
+                <span className="text-xs text-slate-500 font-bold uppercase font-display block mb-1">
                   CURRENT STANCE
                 </span>
-                <p className="text-xs text-slate-350 leading-relaxed font-light font-sans bg-slate-950/80 border border-slate-900 rounded-lg p-3">
+                <p className="text-base text-slate-350 leading-relaxed font-normal font-sans bg-slate-950/80 border border-slate-900 rounded-lg p-3">
                   {sideId === "messi"
                     ? "Defending Cristiano Ronaldo's record scoring volume, international goal dominance, and physical/athletic longevity."
                     : "Defending Lionel Messi's all-time playmaking assist statistics, calendar year output, and 2022 World Cup glory."
@@ -609,19 +647,19 @@ function ArenaContent() {
 
               {/* Key strengths bullets */}
               <div>
-                <span className="text-[9px] text-slate-500 font-bold uppercase font-display block mb-2">
+                <span className="text-xs text-slate-500 font-bold uppercase font-display block mb-2">
                   KEY RIVAL ASSETS
                 </span>
                 <ul className="flex flex-col gap-2">
-                  <li className="text-[10px] text-slate-300 font-light flex items-center gap-2">
+                  <li className="text-base text-slate-300 font-normal flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                     {sideId === "messi" ? "All-time Professional Scorer (900+)" : "Most Ballon d'Ors in history (8)"}
                   </li>
-                  <li className="text-[10px] text-slate-300 font-light flex items-center gap-2">
+                  <li className="text-base text-slate-300 font-normal flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                     {sideId === "messi" ? "UEFA Champions League top scorer" : "World Cup 2022 Golden Ball Champion"}
                   </li>
-                  <li className="text-[10px] text-slate-300 font-light flex items-center gap-2">
+                  <li className="text-base text-slate-300 font-normal flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                     {sideId === "messi" ? "All-time Euro Cup Top Scorer" : "Highest modern calendar year goals (91)"}
                   </li>
@@ -631,7 +669,7 @@ function ArenaContent() {
 
             {/* Pressure gauge semi circle visual widget */}
             <div className="relative z-10 border-t border-slate-900 pt-5 mt-6 flex flex-col items-center">
-              <span className="text-[9px] text-slate-500 font-bold uppercase font-display block mb-2">
+              <span className="text-xs text-slate-500 font-bold uppercase font-display block mb-2">
                 RIVAL MOMENTUM GAUGE
               </span>
               
@@ -664,8 +702,8 @@ function ArenaContent() {
           </div>
         </div>
 
-        {/* CENTER COLUMN: LIVE DEBATE FEED (lg:col-span-6) */}
-        <div className="lg:col-span-6 flex flex-col gap-4">
+        {/* CENTER COLUMN: LIVE DEBATE FEED (lg:col-span-7) */}
+        <div className="lg:col-span-7 flex flex-col gap-4">
           <div className="flex-1 glass-panel-heavy rounded-xl p-5 border border-slate-800 bg-slate-950/50 flex flex-col relative overflow-hidden shadow-inner">
             
             {/* Header Feed Display */}
@@ -716,7 +754,7 @@ function ArenaContent() {
 
                         {/* Bubble content */}
                         <div 
-                          className={`p-3.5 rounded-xl border text-xs font-light font-sans leading-relaxed ${
+                          className={`p-3.5 rounded-xl border text-lg md:text-[19px] font-normal font-sans leading-relaxed ${
                             isUser 
                               ? "bg-blue-950/20 border-blue-500/30 text-slate-100 rounded-tr-none shadow-md shadow-blue-500/5" 
                               : "bg-red-950/20 border-red-500/30 text-slate-100 rounded-tl-none shadow-md shadow-red-500/5"
@@ -742,7 +780,7 @@ function ArenaContent() {
                       <span>•</span>
                       <span>STREAMING...</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-red-500/30 text-xs font-light font-sans leading-relaxed bg-red-950/10 text-slate-200 rounded-tl-none shadow shadow-red-500/5 min-h-[50px] flex items-center">
+                    <div className="p-3.5 rounded-xl border border-red-500/30 text-lg md:text-[19px] font-normal font-sans leading-relaxed bg-red-950/10 text-slate-200 rounded-tl-none shadow shadow-red-500/5 min-h-[50px] flex items-center">
                       <span>{currentOpponentTokenStream || <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />}</span>
                     </div>
                   </div>
@@ -751,6 +789,30 @@ function ArenaContent() {
 
               <div ref={feedEndRef} />
             </div>
+
+            {/* Debug mode telemetry shelf */}
+            {isDebugMode && (
+              <div className="border border-blue-500/20 bg-blue-950/15 rounded-xl p-4 font-mono text-[11px] text-blue-400 mb-3 shadow-inner select-text">
+                <h4 className="font-bold text-xs uppercase tracking-wider mb-2 text-white flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                  ⚙️ QVAC OBSERVED METRICS
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-slate-350">
+                  <div><span className="text-slate-500 font-bold">PROMPT LENGTH:</span> {debugStats.promptLength} chars</div>
+                  <div><span className="text-slate-500 font-bold">RETRIEVAL SIZE:</span> {debugStats.retrievalLength} chars</div>
+                  <div><span className="text-slate-500 font-bold">LATENCY SPEED:</span> {debugStats.latency} ms</div>
+                  <div><span className="text-slate-500 font-bold">CONTEXT STATUS:</span> OK</div>
+                </div>
+                {debugStats.snippets && (
+                  <div className="mt-3 border-t border-blue-950/30 pt-2 text-[10px]">
+                    <span className="text-slate-500 font-bold block mb-1">RETRIEVED KNOWLEDGE SNIPPETS:</span>
+                    <pre className="bg-black/60 border border-slate-900 rounded p-2 text-slate-300 overflow-x-auto max-h-[80px] whitespace-pre-wrap font-sans leading-relaxed">
+                      {debugStats.snippets}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Bottom input area console */}
             <div className="relative z-10 border-t border-slate-900 pt-3 flex flex-col gap-2">
@@ -785,7 +847,7 @@ function ArenaContent() {
                             ? "Coach is updating dashboard..."
                             : "Enter your debate argument..."
                       }
-                      className="w-full bg-slate-950/80 border border-slate-850 rounded-xl px-4 py-3 text-xs text-slate-100 font-light placeholder:text-slate-650 focus:outline-none focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/40 transition-all font-sans leading-none disabled:bg-slate-950 disabled:opacity-55"
+                      className="w-full bg-slate-950/80 border border-slate-850 rounded-xl px-4 py-3 text-base text-slate-100 font-normal placeholder:text-slate-650 focus:outline-none focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/40 transition-all font-sans leading-none disabled:bg-slate-950 disabled:opacity-55"
                     />
                   </div>
                   
@@ -855,23 +917,23 @@ function ArenaContent() {
                   {/* Private chat window container */}
                   <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 max-h-[220px] overflow-y-auto flex flex-col gap-3 font-sans">
                     {coachChat.map((c, idx) => (
-                      <div key={idx} className="text-xs">
+                      <div key={idx} className="text-base">
                         <span className={`font-bold block text-[8px] font-display mb-0.5 uppercase ${
                           c.role === "coach" ? "text-blue-400" : "text-slate-400 text-right"
                         }`}>
                           {c.role === "coach" ? "COACH" : "YOU"} • {c.timestamp}
                         </span>
-                        <p className={`font-light leading-relaxed ${c.role === "user" && "text-right"}`}>{c.content}</p>
+                        <p className={`font-normal leading-relaxed ${c.role === "user" && "text-right"}`}>{c.content}</p>
                       </div>
                     ))}
                     
                     {/* Streaming coach text token loader */}
                     {isCoachStreaming && (
-                      <div className="text-xs">
+                      <div className="text-base">
                         <span className="font-bold block text-[8px] font-display text-blue-400 uppercase animate-pulse">
                           COACH • UPDATING...
                         </span>
-                        <p className="font-light leading-relaxed text-slate-350">
+                        <p className="font-normal leading-relaxed text-slate-350">
                           {currentCoachTokenStream || <Loader2 className="w-3 h-3 animate-spin text-blue-400 inline" />}
                         </p>
                       </div>
@@ -885,7 +947,7 @@ function ArenaContent() {
                   <span className="text-[8px] text-slate-500 font-bold uppercase font-display block mb-1.5">
                     SUGGESTED TACTICAL FOCUS
                   </span>
-                  <ul className="flex flex-col gap-1.5 bg-blue-950/10 border border-blue-900/10 rounded-lg p-3 text-[10px] text-slate-300 font-light">
+                  <ul className="flex flex-col gap-1.5 bg-blue-950/10 border border-blue-900/10 rounded-lg p-3 text-base text-slate-300 font-normal">
                     <li className="flex items-start gap-1.5">
                       <span className="text-blue-400 font-bold">•</span>
                       {sideId === "messi" ? "Highlight 8 Ballon d'Or record" : "Cite 140+ UEFA Champions League goals"}
@@ -1186,45 +1248,45 @@ function ArenaContent() {
                 <div className="grid grid-cols-12 items-center gap-4">
                   <span className="col-span-3 font-bold text-white uppercase">EVIDENCE</span>
                   <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.scores.evidence}%` }} transition={{ duration: 1.2 }} className="h-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.evidenceScore}%` }} transition={{ duration: 1.2 }} className="h-full bg-gradient-to-r from-blue-500 to-cyan-400" />
                   </div>
-                  <span className="col-span-2 text-right font-black text-blue-400">{refereeResult.scores.evidence}</span>
+                  <span className="col-span-2 text-right font-black text-blue-400">{refereeResult.evidenceScore}</span>
                 </div>
 
                 {/* Logic */}
                 <div className="grid grid-cols-12 items-center gap-4">
                   <span className="col-span-3 font-bold text-white uppercase">LOGIC</span>
                   <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.scores.logic}%` }} transition={{ duration: 1.2, delay: 0.1 }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-400" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.logicScore}%` }} transition={{ duration: 1.2, delay: 0.1 }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-400" />
                   </div>
-                  <span className="col-span-2 text-right font-black text-purple-400">{refereeResult.scores.logic}</span>
+                  <span className="col-span-2 text-right font-black text-purple-400">{refereeResult.logicScore}</span>
                 </div>
 
                 {/* Persuasion */}
                 <div className="grid grid-cols-12 items-center gap-4">
                   <span className="col-span-3 font-bold text-white uppercase">PERSUASION</span>
                   <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.scores.persuasion}%` }} transition={{ duration: 1.2, delay: 0.2 }} className="h-full bg-gradient-to-r from-amber-500 to-yellow-400" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.persuasionScore}%` }} transition={{ duration: 1.2, delay: 0.2 }} className="h-full bg-gradient-to-r from-amber-500 to-yellow-400" />
                   </div>
-                  <span className="col-span-2 text-right font-black text-amber-400">{refereeResult.scores.persuasion}</span>
+                  <span className="col-span-2 text-right font-black text-amber-400">{refereeResult.persuasionScore}</span>
                 </div>
 
                 {/* Countering */}
                 <div className="grid grid-cols-12 items-center gap-4">
                   <span className="col-span-3 font-bold text-white uppercase">COUNTERING</span>
                   <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.scores.countering}%` }} transition={{ duration: 1.2, delay: 0.3 }} className="h-full bg-gradient-to-r from-rose-500 to-pink-400" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.counteringScore}%` }} transition={{ duration: 1.2, delay: 0.3 }} className="h-full bg-gradient-to-r from-rose-500 to-pink-400" />
                   </div>
-                  <span className="col-span-2 text-right font-black text-rose-400">{refereeResult.scores.countering}</span>
+                  <span className="col-span-2 text-right font-black text-rose-400">{refereeResult.counteringScore}</span>
                 </div>
 
-                {/* Consistency */}
+                {/* Overall Score */}
                 <div className="grid grid-cols-12 items-center gap-4">
-                  <span className="col-span-3 font-bold text-white uppercase">CONSISTENCY</span>
+                  <span className="col-span-3 font-bold text-white uppercase">OVERALL SCORE</span>
                   <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.scores.consistency}%` }} transition={{ duration: 1.2, delay: 0.4 }} className="h-full bg-gradient-to-r from-teal-500 to-emerald-400" />
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.overallScore}%` }} transition={{ duration: 1.2, delay: 0.4 }} className="h-full bg-gradient-to-r from-teal-500 to-emerald-400" />
                   </div>
-                  <span className="col-span-2 text-right font-black text-teal-400">{refereeResult.scores.consistency}</span>
+                  <span className="col-span-2 text-right font-black text-teal-400">{refereeResult.overallScore}</span>
                 </div>
               </div>
 
@@ -1311,15 +1373,19 @@ function ArenaContent() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">EVIDENCE SCORE:</span>
-                <span className="font-bold text-blue-400">{refereeResult.scores.evidence} / 100</span>
+                <span className="font-bold text-blue-400">{refereeResult.evidenceScore} / 100</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">LOGIC SCORE:</span>
-                <span className="font-bold text-purple-400">{refereeResult.scores.logic} / 100</span>
+                <span className="font-bold text-purple-400">{refereeResult.logicScore} / 100</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">PERSUASION SCORE:</span>
-                <span className="font-bold text-yellow-400">{refereeResult.scores.persuasion} / 100</span>
+                <span className="font-bold text-yellow-400">{refereeResult.persuasionScore} / 100</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">OVERALL SCORE:</span>
+                <span className="font-bold text-teal-450">{refereeResult.overallScore} / 100</span>
               </div>
             </div>
 
