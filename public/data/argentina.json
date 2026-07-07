@@ -1,0 +1,79 @@
+{
+  "id": "argentina",
+  "name": "Argentina",
+  "teamName": "TEAM ARGENTINA",
+  "rival": "Brazil",
+  "color": "from-sky-300 via-sky-500 to-sky-700",
+  "glowColor": "rgba(125,211,252,0.4)",
+  "badge": "La Albiceleste / World Champions",
+  "stats": [
+    { "label": "World Cups", "value": "3", "description": "1978, 1986, 2022 Champions" },
+    { "label": "Copa Americas", "value": "16", "description": "Most decorated in tournament" },
+    { "label": "Unbeaten Run", "value": "36 Matches", "description": "Second longest in history" },
+    { "label": "FIFA Ranking", "value": "1st", "description": "Current world leaders" }
+  ],
+  "arsenal": [
+    {
+      "title": "Current World Hegemony",
+      "fact": "Reigning World Cup Champions (2022), Copa América Champions (2021, 2024), and Finalissima Winners, establishing absolute modern dominance."
+    },
+    {
+      "title": "Tactical Versatility",
+      "fact": "Under Lionel Scaloni, Argentina developed a fluid, high-pressing midfield engine (De Paul, Mac Allister, Enzo) that adapts perfectly to match contexts."
+    },
+    {
+      "title": "Legendary Heritage",
+      "fact": "Home to the two greatest players in football history: Diego Maradona (the hero of 1986) and Lionel Messi (the king of 2022)."
+    },
+    {
+      "title": "Defensive Solidity",
+      "fact": "Anchored by Emi Martínez (two-time Yashin Trophy winner) and Cristian Romero, keeping clean sheets in key tournament matches."
+    }
+  ],
+  "counterattacks": [
+    {
+      "triggerKeyword": "world cup",
+      "claim": "Brazil has 5 World Cups, which is still far superior to Argentina's 3. Argentina won't catch up to the Pentacampeões for decades.",
+      "defenseUpgrade": "Focus on the present: Argentina is the reigning world champion, and their recent head-to-head dominance (winning the 2021 Copa America at the Maracanã) proves the shift in power."
+    },
+    {
+      "triggerKeyword": "tactical",
+      "claim": "Argentina's success is entirely dependent on Lionel Messi. Once Messi retires, Argentina will return to their dry spell of 1993-2021.",
+      "defenseUpgrade": "Argue that the current squad is built on young European-level talents (Enzo, Mac Allister, Lautaro Martínez) who have proven they can win and control matches even in Messi's absence."
+    },
+    {
+      "triggerKeyword": "heritage",
+      "claim": "Brazil's historical roster (Pelé, Ronaldo, Ronaldinho, Romário, Garrincha) is infinitely deeper and more iconic than Argentina's reliance on Maradona and Messi.",
+      "defenseUpgrade": "Point out that Argentina's top two icons achieved absolute peaks of individual influence that transformed teams in a way Brazilian squads (which relied on heavy depth) never had to."
+    }
+  ],
+  "coachFeedback": {
+    "strengths": [
+      "Excellent integration of recent trophy runs (World Cup, double Copas).",
+      "Strong emphasis on the defensive spine and Scaloni's tactical project."
+    ],
+    "weaknesses": [
+      "Allowed the '5 World Cups' record to overshadow Argentina's achievements.",
+      "Did not address Brazil's historically superior head-to-head records prior to 2021."
+    ],
+    "missedOpportunities": [
+      "Could have mentioned Argentina's unbeaten run of 36 matches which nearly broke the world record.",
+      "Failed to highlight Argentina's production of tacticians and coaches worldwide."
+    ],
+    "upgradeSuggestion": "Acknowledge Brazil's historical 5 stars, but contrast their current structural instability and lack of international trophies since 2002 with Argentina's modern, highly professionalized era of dominance."
+  },
+  "refereeScoring": {
+    "round1": {
+      "evidence": 83,
+      "logic": 80,
+      "persuasion": 81,
+      "comment": "Very strong argument on current form, but struggled to answer the weight of Brazil's five World Cups."
+    },
+    "round2": {
+      "evidence": 96,
+      "logic": 93,
+      "persuasion": 95,
+      "comment": "Masterful adjustment. Defending current tactical cohesion and contrasting Brazil's post-2002 drought won this round decisively."
+    }
+  }
+}

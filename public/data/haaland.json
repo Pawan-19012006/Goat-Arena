@@ -1,0 +1,79 @@
+{
+  "id": "haaland",
+  "name": "Erling Haaland",
+  "teamName": "TEAM HAALAND",
+  "rival": "Kylian Mbappé",
+  "color": "from-amber-400 via-yellow-500 to-orange-600",
+  "glowColor": "rgba(251,191,36,0.4)",
+  "badge": "The Terminator / Cyborg",
+  "stats": [
+    { "label": "PL Golden Boots", "value": "2", "description": "Record-breaker in England" },
+    { "label": "Treble Winner", "value": "1", "description": "UCL, PL, FA Cup in 2023" },
+    { "label": "Goal Ratio", "value": "0.95", "description": "Goals per game average" },
+    { "label": "UCL Goals", "value": "40+", "description": "Fastest to reach 40 goals" }
+  ],
+  "arsenal": [
+    {
+      "title": "Premier League Record-Breaker",
+      "fact": "Scored a record 36 goals in a single 38-game Premier League season, eclipsing absolute legends of English football in his first year."
+    },
+    {
+      "title": "Historic Treble",
+      "fact": "Led Manchester City's frontline in the historic 2022/2023 treble-winning campaign, finishing as top scorer in both the Premier League and UEFA Champions League."
+    },
+    {
+      "title": "Unrivaled Goal Efficiency",
+      "fact": "Holds the best goals-per-minute ratio in Champions League history, averaging almost 1 goal per match across Dortmund and Manchester City."
+    },
+    {
+      "title": "Physical Archetype",
+      "fact": "A towering 6'4\" athletic freak with a top speed of 36 km/h, combining elite height, strength, and explosive acceleration."
+    }
+  ],
+  "counterattacks": [
+    {
+      "triggerKeyword": "premier league",
+      "claim": "Haaland is a tap-in merchant who relies entirely on De Bruyne and Pep Guardiola's system. He has low touch counts and disappears when not fed service.",
+      "defenseUpgrade": "Argue that low touches mean extreme efficiency: Haaland needs only a fraction of a second to decide games. His elite movement drags defenders and creates space for others."
+    },
+    {
+      "triggerKeyword": "treble",
+      "claim": "He didn't score in the Champions League semi-finals or final, nor in the FA Cup final. He was a passenger in the biggest matches of the Treble run.",
+      "defenseUpgrade": "Explain that his presence alone pinned back top defenders like Acerbi and Militão, creating space for Rodri, Bernardo Silva, and Gundogan to score the winning goals."
+    },
+    {
+      "triggerKeyword": "efficiency",
+      "claim": "Individual goals are fine, but Mbappé's dynamic playmaking and dribbling make him a complete superstar. Haaland cannot create his own goals.",
+      "defenseUpgrade": "Point out that football is won by scoring. Haaland's historic rate of scoring is so high that his specialized goal production has a higher net positive value than generalized wing play."
+    }
+  ],
+  "coachFeedback": {
+    "strengths": [
+      "Strong emphasis on his historical Premier League scoring achievements.",
+      "Effective use of the Treble and Champions League efficiency stats."
+    ],
+    "weaknesses": [
+      "Left the 'system player' criticism unaddressed.",
+      "Struggled to counter the international achievements of Mbappé."
+    ],
+    "missedOpportunities": [
+      "Could have mentioned his Champions League goal scoring pace compared to Messi and Ronaldo at the same age.",
+      "Should have pointed out his incredible conversion rate per shot compared to other strikers."
+    ],
+    "upgradeSuggestion": "Frame Haaland's minimal touches not as a weakness, but as the ultimate manifestation of modern striker efficiency. Remind the referee that Haaland dominates the toughest league in the world."
+  },
+  "refereeScoring": {
+    "round1": {
+      "evidence": 85,
+      "logic": 78,
+      "persuasion": 80,
+      "comment": "Devastating goal statistics, but susceptible to system-dependency and lack of dribbling creation."
+    },
+    "round2": {
+      "evidence": 95,
+      "logic": 94,
+      "persuasion": 94,
+      "comment": "Superb reframing of efficiency. Proving his off-the-ball spacing value during key finals won over the referee panel."
+    }
+  }
+}

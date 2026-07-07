@@ -1,0 +1,79 @@
+{
+  "id": "brazil",
+  "name": "Brazil",
+  "teamName": "TEAM BRAZIL",
+  "rival": "Argentina",
+  "color": "from-green-400 via-yellow-500 to-green-750",
+  "glowColor": "rgba(34,197,94,0.4)",
+  "badge": "Canarinho / Pentacampeões",
+  "stats": [
+    { "label": "World Cups", "value": "5", "description": "Only nation with 5 stars" },
+    { "label": "FIFA Ranking", "value": "5th", "description": "Always in top tier" },
+    { "label": "Total Goals", "value": "2200+", "description": "Most in World Cup history" },
+    { "label": "Copa Americas", "value": "9", "description": "Multiple era champions" }
+  ],
+  "arsenal": [
+    {
+      "title": "The Gold Standard",
+      "fact": "The only nation to win 5 FIFA World Cups (1958, 1962, 1970, 1994, 2002) and the only country to play in every single tournament."
+    },
+    {
+      "title": "Jogo Bonito Legacy",
+      "fact": "Synonymous with beautiful, expressive football. Produced the most Ballon d'Or winners and legendary forwards (Pelé, Ronaldo Nazário, Ronaldinho, Neymar)."
+    },
+    {
+      "title": "Global Talent Pool",
+      "fact": "The world's largest exporter of professional football players, filling top leagues across Europe and Asia with creative sparks."
+    },
+    {
+      "title": "Pelé's Hegemony",
+      "fact": "Home of Pelé, the only player to win 3 World Cups, who scored 1281 goals in his career and remains the ultimate global icon."
+    }
+  ],
+  "counterattacks": [
+    {
+      "triggerKeyword": "gold standard",
+      "claim": "Brazil has not won a World Cup since 2002. For over 20 years, European nations and Argentina have dominated, while Brazil suffered humiliating defeats (like the 7-1 to Germany).",
+      "defenseUpgrade": "Acknowledge the post-2002 drought as a transition, but highlight that Brazil's historical 5 stars remain an unmatched peak, and they continue to produce the world's most exciting talent (Vini Jr, Rodrygo)."
+    },
+    {
+      "triggerKeyword": "legacy",
+      "claim": "The 'Jogo Bonito' is dead in the modern tactical, physical era. Brazilian flair has been replaced by structured European systems, and Argentina has adapted far better.",
+      "defenseUpgrade": "Argue that Brazilian flair is not dead; it has evolved. Players like Vinicius Jr. combine Jogo Bonito dribbling with modern European tactical disciplines, winning UCL finals."
+    },
+    {
+      "triggerKeyword": "pelé",
+      "claim": "Pelé played in an era with weak tactical setups and offside rules. Messi's 15+ years of European dominance at the absolute highest level eclipses Pelé's career.",
+      "defenseUpgrade": "Remind that Pelé played against the most brutal, unprotected tackles in football history, won his first World Cup at 17, and proved his genius against top-tier European teams in friendlies and Intercontinental Cups."
+    }
+  ],
+  "coachFeedback": {
+    "strengths": [
+      "Excellent defense of Brazil's unmatched 5 World Cup stars.",
+      "Great leverage of the Pelé legacy and Jogo Bonito aesthetic."
+    ],
+    "weaknesses": [
+      "Allowed the 7-1 Germany defeat and recent World Cup drought to weaken your position.",
+      "Struggled to answer Argentina's recent Copa América and World Cup triumphs."
+    ],
+    "missedOpportunities": [
+      "Could have highlighted Brazil's positive overall head-to-head record in Copa América history.",
+      "Should have pointed out how many Ballon d'Ors Brazilian players have won since 1990 compared to Argentina (excluding Messi)."
+    ],
+    "upgradeSuggestion": "Pivot the discussion from recent years to global impact. Define Brazil not as a team that wins occasionally, but as the very soul and identity of global football. Re-emphasize that Brazil's 5 stars is the ultimate trophy metric."
+  },
+  "refereeScoring": {
+    "round1": {
+      "evidence": 84,
+      "logic": 78,
+      "persuasion": 82,
+      "comment": "Strong appeal to historical pedigree and beautiful football, but vulnerable on recent trophy drought."
+    },
+    "round2": {
+      "evidence": 95,
+      "logic": 94,
+      "persuasion": 96,
+      "comment": "Brilliant rebuttal. Framing Brazil as the soul of football and highlighting modern world-beaters like Vinicius Jr. recaptured the panel's score."
+    }
+  }
+}

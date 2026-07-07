@@ -1,0 +1,79 @@
+{
+  "id": "ronaldo",
+  "name": "Cristiano Ronaldo",
+  "teamName": "TEAM RONALDO",
+  "rival": "Lionel Messi",
+  "color": "from-red-500 via-rose-600 to-amber-700",
+  "glowColor": "rgba(244,63,94,0.4)",
+  "badge": "The Goal Machine / CR7",
+  "stats": [
+    { "label": "Ballon d'Ors", "value": "5", "description": "Second most in history" },
+    { "label": "Career Goals", "value": "900+", "description": "All-time leading goalscorer" },
+    { "label": "UCL Titles", "value": "5", "description": "Most in Champions League era" },
+    { "label": "Int'l Goals", "value": "130+", "description": "All-time international record" }
+  ],
+  "arsenal": [
+    {
+      "title": "Mr. Champions League",
+      "fact": "All-time top scorer (140 goals) and assist provider (42 assists) in UEFA Champions League history, holding the record for most knockout stage goals."
+    },
+    {
+      "title": "International Goal King",
+      "fact": "The highest scoring international player of all time with 130+ goals for Portugal, captaining them to Euro 2016 and Nations League success."
+    },
+    {
+      "title": "Athletic Longevity",
+      "fact": "Has scored 400+ goals since turning 30 years old, proving unparalleled work ethic, physical dominance, and adaptation across 4 different leagues."
+    },
+    {
+      "title": "Clutch Performer",
+      "fact": "Holds the record for the most match-winning goals in Champions League history and has scored in 3 separate UCL finals."
+    }
+  ],
+  "counterattacks": [
+    {
+      "triggerKeyword": "champions league",
+      "claim": "Messi has a superior goals-and-assists-per-game ratio in the Champions League. Ronaldo has more goals simply because he has played more games.",
+      "defenseUpgrade": "Point out that Ronaldo's dominance shows up when it matters most: in the quarter-finals, semi-finals, and finals, where he has more goals than any other player by a huge margin."
+    },
+    {
+      "triggerKeyword": "international",
+      "claim": "Ronaldo's international goal record is padded by weak European opposition in qualifiers, whereas Messi won the actual FIFA World Cup against top-tier South American and European nations.",
+      "defenseUpgrade": "Highlight Ronaldo's Euro 2016 victory (Portugal's first-ever major trophy) and the competitive nature of the European Championships, where he is also the all-time top scorer."
+    },
+    {
+      "triggerKeyword": "longevity",
+      "claim": "Longevity doesn't beat peak talent. Messi's 91 goals in 2012 and his playmaking genius make him a superior footballer, whereas Ronaldo is just a supreme finisher.",
+      "defenseUpgrade": "Explain that Ronaldo is not just a finisher; he started as a dynamic winger with elite dribbling and crossing stats before adapting his game to become the ultimate goalscorer, showing superior complete athleticism."
+    }
+  ],
+  "coachFeedback": {
+    "strengths": [
+      "Excellent focus on Ronaldo's UCL knockout statistics and unmatched clutch credentials.",
+      "Good point regarding his international record and longevity over 4 top-tier leagues."
+    ],
+    "weaknesses": [
+      "Allowed the playmaker argument to go unchallenged.",
+      "Did not address Messi's higher number of Ballon d'Ors."
+    ],
+    "missedOpportunities": [
+      "You forgot to mention Ronaldo's 3 consecutive UCL titles with Real Madrid.",
+      "Could have cited Ronaldo's weak-foot and header statistics to highlight his complete physical scoring package."
+    ],
+    "upgradeSuggestion": "Reinforce that Ronaldo has succeeded in multiple distinct leagues (Premier League, La Liga, Serie A) under different tactical systems, whereas Messi spent his prime in a single Barcelona system."
+  },
+  "refereeScoring": {
+    "round1": {
+      "evidence": 84,
+      "logic": 79,
+      "persuasion": 81,
+      "comment": "Strong physical and stats arguments, but vulnerable to playmaker and World Cup comparisons."
+    },
+    "round2": {
+      "evidence": 97,
+      "logic": 93,
+      "persuasion": 96,
+      "comment": "Phenomenal rebuttal. Using the 'multiple leagues' argument and highlighting the high ratio of UCL knockout goals completely re-balanced the debate."
+    }
+  }
+}

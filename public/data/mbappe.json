@@ -1,0 +1,79 @@
+{
+  "id": "mbappe",
+  "name": "Kylian Mbappé",
+  "teamName": "TEAM MBAPPÉ",
+  "rival": "Erling Haaland",
+  "color": "from-teal-400 via-cyan-600 to-indigo-900",
+  "glowColor": "rgba(45,212,191,0.4)",
+  "badge": "The Speed Demon / Donatello",
+  "stats": [
+    { "label": "World Cups", "value": "1", "description": "Champion at age 19" },
+    { "label": "World Cup Goals", "value": "12", "description": "Including a final hat-trick" },
+    { "label": "Ligue 1 Titles", "value": "6", "description": "Dominant domestic career" },
+    { "label": "Speed Clocked", "value": "38 km/h", "description": "One of the fastest players" }
+  ],
+  "arsenal": [
+    {
+      "title": "World Cup Icon",
+      "fact": "Scored in the 2018 World Cup Final as a teenager and hit a historic hat-trick in the 2022 World Cup Final, winning the Golden Boot with 8 goals."
+    },
+    {
+      "title": "Elite Versatility",
+      "fact": "Equally lethal as a left-winger, right-winger, or central striker, combining playmaking speed with clinical finishing."
+    },
+    {
+      "title": "Champions League Producer",
+      "fact": "Scored 48+ Champions League goals before turning 25, setting records for the youngest player to reach several UCL goal milestones."
+    },
+    {
+      "title": "Dribbling & Ball Carry",
+      "fact": "Averages over 3.5 successful take-ons per 90, making him a dynamic threat in transition and 1v1 situations."
+    }
+  ],
+  "counterattacks": [
+    {
+      "triggerKeyword": "world cup",
+      "claim": "Mbappé won the World Cup with a star-studded France team. Haaland plays for Norway, a small footballing nation, so international comparisons are unfair.",
+      "defenseUpgrade": "Point out that Mbappé did not just win; he carried France in 2022, scoring a hat-trick in the final and showing elite leadership when the pressure was highest."
+    },
+    {
+      "triggerKeyword": "versatility",
+      "claim": "Versatility is fine, but Haaland is the ultimate specialist striker. Haaland won the Treble and broke the Premier League scoring record in his debut season in a far tougher league than Ligue 1.",
+      "defenseUpgrade": "Argue that Mbappé's ability to create goals (150+ career assists) makes him a much more complete and influential football player than a pure box-finisher."
+    },
+    {
+      "triggerKeyword": "speed",
+      "claim": "Speed fades with age. Haaland's physical size, strength, and box positioning make his goalscoring style more sustainable long-term.",
+      "defenseUpgrade": "Emphasize that Mbappé's game is built on high football IQ, quick decision-making, and close control, not just raw pace."
+    }
+  ],
+  "coachFeedback": {
+    "strengths": [
+      "Excellent points about Mbappé's legacy in World Cups and his triple-goal final performance.",
+      "Strong use of assist data to highlight his superiority as a complete forward."
+    ],
+    "weaknesses": [
+      "Allowed the 'Ligue 1 tax' argument to go undefended.",
+      "Failed to mention his recent move to Real Madrid to capture Champions League dominance."
+    ],
+    "missedOpportunities": [
+      "Could have highlighted his goalscoring record in away UCL knockout fixtures (e.g., at Camp Nou, Allianz Arena).",
+      "Did not compare his dribbling metrics to Haaland's minimal ball involvement."
+    ],
+    "upgradeSuggestion": "Acknowledge Haaland's goal-scoring volume but frame Mbappé as a 'catalyst player' who can decide games single-handedly through individual brilliance and elite creation."
+  },
+  "refereeScoring": {
+    "round1": {
+      "evidence": 80,
+      "logic": 82,
+      "persuasion": 83,
+      "comment": "Exciting argument, but vulnerable to the Premier League dominance and Treble points from Team Haaland."
+    },
+    "round2": {
+      "evidence": 94,
+      "logic": 95,
+      "persuasion": 93,
+      "comment": "Superb correction. Highlighting creation metrics and clutch European goals makes a devastating case for the complete player."
+    }
+  }
+}

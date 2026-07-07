@@ -1,0 +1,79 @@
+{
+  "id": "messi",
+  "name": "Lionel Messi",
+  "teamName": "TEAM MESSI",
+  "rival": "Cristiano Ronaldo",
+  "color": "from-sky-400 via-blue-600 to-indigo-800",
+  "glowColor": "rgba(56,189,248,0.4)",
+  "badge": "The Playmaker / La Pulga",
+  "stats": [
+    { "label": "Ballon d'Ors", "value": "8", "description": "Most in football history" },
+    { "label": "Career Goals", "value": "850+", "description": "Incredible scoring rate" },
+    { "label": "Career Assists", "value": "380+", "description": "All-time leading provider" },
+    { "label": "Major Trophies", "value": "44", "description": "Most decorated player ever" }
+  ],
+  "arsenal": [
+    {
+      "title": "Playmaking Excellence",
+      "fact": "All-time leading assist provider in football history with over 380 assists, showcasing a complete playmaker skill set."
+    },
+    {
+      "title": "World Cup Glory",
+      "fact": "Captained Argentina to the 2022 FIFA World Cup victory, winning the Golden Ball as the tournament's best player."
+    },
+    {
+      "title": "Efficiency & Dribbling",
+      "fact": "Holds the record for the most successful dribbles completed in World Cup history (125+) and matches with a 10/10 rating."
+    },
+    {
+      "title": "Individual Records",
+      "fact": "The only player to win 8 Ballon d'Ors and the European Golden Shoe 6 times."
+    }
+  ],
+  "counterattacks": [
+    {
+      "triggerKeyword": "playmaking",
+      "claim": "Playmaking isn't enough in knockout football. Ronaldo has 5 UCL titles and holds the record for most UCL goals (140) and assists (42). Messi disappeared in key European nights post-2015.",
+      "defenseUpgrade": "Explain that Messi's playmaking is supported by his 129 UCL goals (second all-time) in fewer appearances, giving him a superior goals-per-game ratio."
+    },
+    {
+      "triggerKeyword": "world cup",
+      "claim": "Winning the World Cup in 2022 was heavily aided by penalties (5 out of 7 matches). A month-long tournament doesn't eclipse 15 years of consistent Champions League dominance.",
+      "defenseUpgrade": "Emphasize Messi's impact beyond penalties: creating the most big chances in the tournament, scoring in every single knockout stage round, and holding the most MOTM awards."
+    },
+    {
+      "triggerKeyword": "dribbling",
+      "claim": "Dribbling statistics are secondary to end-product. Ronaldo's physical presence, aerial ability, and weak-foot efficiency make him the ultimate complete goalscorer.",
+      "defenseUpgrade": "Argue that dribbling is the engine of progression. Breaking defensive blocks creates spaces for teammates, making Messi both the primary goalscorer and primary playmaker."
+    }
+  ],
+  "coachFeedback": {
+    "strengths": [
+      "Excellent citation of Messi's playmaking metrics and Ballon d'Or supremacy.",
+      "Strong use of the 2022 World Cup campaign as the ultimate career differentiator."
+    ],
+    "weaknesses": [
+      "Neglected to counter Ronaldo's superior UEFA Champions League knockout record.",
+      "Did not address Ronaldo's athletic versatility and longevity advantage."
+    ],
+    "missedOpportunities": [
+      "You missed mentioning Messi's historic 91-goal calendar year in 2012.",
+      "Did not mention that Messi has the highest goal-plus-assist ratio in modern football."
+    ],
+    "upgradeSuggestion": "Incorporate Messi's goal efficiency (goals per minute) and specify that he achieved his trophies in fewer appearances than Ronaldo. Reframe the debate from 'pure scorer' to 'complete offensive package'."
+  },
+  "refereeScoring": {
+    "round1": {
+      "evidence": 82,
+      "logic": 78,
+      "persuasion": 80,
+      "comment": "Good starting argument, but left the flank open for Ronaldo's UCL dominance argument."
+    },
+    "round2": {
+      "evidence": 96,
+      "logic": 94,
+      "persuasion": 95,
+      "comment": "Incredible adjustment! Incorporating the goals-per-minute efficiency and Calendar Year record shut down the volume argument."
+    }
+  }
+}
