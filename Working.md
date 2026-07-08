@@ -1,6 +1,6 @@
 # GOAT Arena gameplay & State Operations (Phase 3.9)
 
-This document explains the input validation, deterministic lookup bypass, query-routing layer, strategic coach intent responses, opponent structured rebuttals, layout stability rules, side assignment audit, and response validations.
+This document explains the input validation, deterministic lookup bypass, query-routing layer, strategic coach intent responses, opponent structured rebuttals, layout stability rules, side assignment audit, response validations, and advocate personality rules.
 
 ---
 
@@ -16,15 +16,17 @@ The application is structured to mimic an esports console dashboard, ensuring la
 
 ---
 
-## 🛡️ Opponent Side Assignment Audit & Stance Card
+## 🛡️ Opponent Side Assignment Audit & Advocate Personality
 
 To prevent the AI Opponent from praising or defending the user's side, we enforce strict client-side alignment and server-side checkpoints:
-1. **Rival Metadata JSON Preloading**: The client resolves `opponentSideId` based on the selected clash type and preloads both `/data/${sideId}.json` and `/data/${opponentSideId}.json`.
-2. **Dynamic Stance Binding**: The Left Column Stance Panel dynamically maps badge profiles, stance paragraphs (`getStanceDescription()`), and Key Rival Assets bullets directly from the loaded `opponentData` stats rather than hardcoding Messi vs Ronaldo.
-3. **Strict Route Prompts**: The opponent endpoint is sent explicit guidelines:
-   `You are defending TEAM {opponentSide}. Never support {userSide}. Never praise {userSide}. Always argue from the perspective of {opponentSide}.`
-4. **Self-Validation Regeneration Loop**: On every rebuttal generation, the server checks the generated string for patterns of user-side praise or self-deprecation. If caught, it rejects and regenerates (up to 3 times) before falling back to a deterministic, high-scoring profile statement.
-5. **Auditing Console Logs**: Console prints detail `userSide`, `opponentSide`, `loadedContextFile`, and `loadedEntity` before model generation.
+1. **Rival Metadata JSON Preloading**: The client resolves `opponentSideId` based on the selected clash type and preloads both user and rival JSON files.
+2. **Dynamic Stance Binding**: Stance badges, current stance descriptions, and Key Rival Assets statistics bind dynamically from the loaded `opponentData` stats rather than hardcoding Messi vs Ronaldo.
+3. **Advocate Tone Prompts**: System prompts adopt the traits: `Confident`, `Competitive`, `Relentless`, `Persuasive`, and `Unshakable`. The opponent is instructed to act as a pure advocate who genuinely believes its side is superior.
+4. **Challenge ➔ Counter-Evidence ➔ Closing Strategy**: Rebuttals follow a three-part structure:
+   - **CHALLENGE**: Challenge the user's statement directly and confidently (no acknowledging or agreeing).
+   - **COUNTER EVIDENCE**: State a strong statistic or fact from the retrieved context.
+   - **CLOSING STATEMENT**: Deliver a sharp, competitive closing statement locking in the stance.
+5. **Soft-Concession Filters & Validation**: Expanded the server's validation check to block concession starters (e.g. `"that's true"`, `"i agree"`, `"you are correct"`, `"to be fair"`, `"admittedly"`, `"indeed impressive"`). If caught, it rejects and regenerates (up to 3 times) before loading a safe default fallback profile statement.
 
 ---
 

@@ -23,9 +23,9 @@ graph TD
   subgraph Input Validation & Retry Checkpoints
     DebateState -->|User Input| OpponentValidation{Is Greeting/Filler?}
     OpponentValidation -->|Yes: GREETING_BYPASS| UI
-    OpponentValidation -->|No| OpponentPrompt[Strict Prompt: Never praise User side]
+    OpponentValidation -->|No| OpponentPrompt[Advocate Prompt: Confident & Relentless]
     
-    OpponentPrompt -->|Generate Rebuttal| SelfCheck{Praise User Side / Self-Deprecate?}
+    OpponentPrompt -->|Generate Rebuttal| SelfCheck{Praise User Side / Soft Concede?}
     SelfCheck -->|Yes: Attempt < 3| OpponentPrompt
     SelfCheck -->|Yes: Attempt = 3| FallbackSafeRebuttal[Load Safety Fallback Rebuttal]
     SelfCheck -->|No| UI
@@ -44,8 +44,9 @@ graph TD
 
 ### 1. Opponent Side Assignment & Validation Retry Loop
 - **Dual JSON Loader**: Fetches `/data/${sideId}.json` and `/data/${opponentSideId}.json` at startup.
-- **Stance Alignment**: Left column uses `opponentData` to display statistics and achievements.
-- **Self-Validation retry loop**: Opponent API checks output for praise keywords or self-deprecating words. Repeats up to 3 times, falling back to a deterministic profile rebuttal if necessary to guarantee the opponent never praises the user side.
+- **Stance Alignment**: Left column uses `opponentData` to display statistics and achievements dynamically.
+- **Advocate Personality Prompts**: Opponent behaves as an unshakable football advocate, using the Challenge ➔ Counter-Evidence ➔ Closing response sequence.
+- **Self-Validation retry loop**: Opponent API checks output for praise keywords, self-deprecating words, and soft-concessions. Repeats up to 3 times, falling back to a safe default profile statement if necessary.
 - **Audit Debug Logs**: structured logs printed to server console:
   - `userSide`
   - `opponentSide`

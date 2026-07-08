@@ -3,89 +3,136 @@ import { defaultModelProvider, DebateMessage } from "@/lib/qvac";
 import { getEntityMultiSectionContext } from "@/lib/retrieval";
 
 /**
- * Validates if the user's message is a simple greeting or filler rather than a debate argument
+ * Trims a response to a maximum word count at the nearest sentence boundary.
+ */
+function trimToWordLimit(text: string, maxWords = 80): string {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= maxWords) return text.trim();
+  // Find last sentence boundary within limit
+  const truncated = words.slice(0, maxWords).join(" ");
+  const lastPeriod = Math.max(
+    truncated.lastIndexOf("."),
+    truncated.lastIndexOf("!"),
+    truncated.lastIndexOf("?")
+  );
+  if (lastPeriod > truncated.length * 0.5) {
+    return truncated.slice(0, lastPeriod + 1).trim();
+  }
+  return truncated.trim() + ".";
+}
+
+/**
+ * Validates if the user's message is a simple greeting or filler rather than a debate argument.
  */
 function checkNonArgument(text: string, side: string): string | null {
   const clean = text.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
   const greetings = ["hello", "hi", "hey", "yo", "sup", "howdy", "hola", "greetings"];
-  
+
   if (greetings.includes(clean)) {
-    return "We haven't started debating yet. State your case or give me a reason why " + side.toUpperCase() + " is superior.";
+    return `That's not a football argument. Give me an actual claim about ${side.toUpperCase()} and I'll tear it apart.`;
   }
   if (clean === "ok" || clean === "okay") {
-    return "What's your strongest argument for " + side.toUpperCase() + "?";
+    return `Make your case. What's your strongest point for ${side.toUpperCase()}?`;
   }
-  if (clean.length < 12) {
-    // Check if it contains core debate terms
-    const debateTerms = ["score", "goal", "win", "stat", "troph", "cup", "play", "best", "goat", "beat", "rate", "year", "ucl", "ballon"];
+  if (clean === "hmm" || clean === "nice" || clean === "cool" || clean === "interesting") {
+    return `I need a real football argument, not small talk. What's your claim?`;
+  }
+  if (clean.length < 10) {
+    const debateTerms = ["score", "goal", "win", "stat", "troph", "cup", "play", "best", "goat", "beat", "rate", "year", "ucl", "ballon", "world", "champion", "title"];
     const hasDebateTerm = debateTerms.some(term => clean.includes(term));
     if (!hasDebateTerm) {
-      return "State your case. Provide some actual football evidence for " + side.toUpperCase() + ".";
+      return `State your case. Give me a real football point about ${side.toUpperCase()} worth debating.`;
     }
   }
   return null;
 }
 
 /**
- * Checks if the generated text praises the user's side or criticizes the opponent's own side.
+ * Checks if the generated text praises the user's side, criticizes the opponent's own side,
+ * or contains soft concessions / self-deprecating first-person phrases.
  */
 function validateOpponentResponse(text: string, userSide: string, opponentSide: string): boolean {
-  const t = text.toLowerCase();
+  const t = text.toLowerCase().trim();
   const u = userSide.toLowerCase().replace("team ", "").trim();
   const o = opponentSide.toLowerCase().replace("team ", "").trim();
 
-  // Praise words for the user's side
-  const userPraiseWords = [
-    `${u} is better`, `${u} is superior`, `${u} has the edge`,
-    `${u} is the greatest`, `praise ${u}`, `great ${u}`,
-    `support ${u}`, `love ${u}`, `prefer ${u}`,
-    `i agree with ${u}`, `you are right about ${u}`,
-    `${u} is the best`, `${u} has been on fire`,
-    `${u} is dominant`
+  // Hard concessions — never acceptable
+  const concessions = [
+    "that's true", "that is true", "i agree", "you are correct", "you make a good point",
+    "good point", "to be fair", "admittedly", "fair enough", "i must admit", "indeed impressive",
+    "is indeed impressive", "are indeed impressive", "have a point", "you're right",
+    "you are right", "that's fair", "that is fair", "i concede", "i'll admit",
+    "you make a strong case", "i cannot deny"
   ];
-
-  if (u.includes("messi")) {
-    userPraiseWords.push("messi is better", "messi is superior", "messi is the goat", "messi is the greatest", "messi is the king");
-  }
-  if (u.includes("ronaldo")) {
-    userPraiseWords.push("ronaldo is better", "ronaldo is superior", "ronaldo is the goat", "ronaldo is the greatest", "ronaldo is the king");
-  }
-  if (u.includes("mbappe")) {
-    userPraiseWords.push("mbappe is better", "mbappe is superior", "mbappe is the best");
-  }
-  if (u.includes("haaland")) {
-    userPraiseWords.push("haaland is better", "haaland is superior", "haaland is the best");
-  }
-  if (u.includes("argentina")) {
-    userPraiseWords.push("argentina is better", "argentina is superior", "argentina has been on fire");
-  }
-  if (u.includes("brazil")) {
-    userPraiseWords.push("brazil is better", "brazil is superior", "brazil has been on fire");
-  }
-
-  for (const w of userPraiseWords) {
+  for (const w of concessions) {
     if (t.includes(w)) {
-      console.log(`[Validation Check] Rebuttal contains user-praise keyword "${w}". Rejecting.`);
+      console.log(`[Validation] Concession phrase "${w}". Rejecting.`);
       return false;
     }
   }
 
-  // Self deprecation words about the opponent's own side
+  // First-person self-deprecation about own side
+  const selfDeprecationFirstPerson = [
+    "we've lost", "we've not", "we haven't", "we couldn't", "we failed",
+    "we were weak", "we struggled to", "our weakness", "our biggest flaw",
+    "we didn't win", "we have not won", "we couldn't win", "we are not",
+    "we're not as strong", "we're weaker"
+  ];
+  for (const w of selfDeprecationFirstPerson) {
+    if (t.includes(w)) {
+      console.log(`[Validation] First-person self-deprecation "${w}". Rejecting.`);
+      return false;
+    }
+  }
+
+  // Praise words for the user's side
+  const userPraiseWords = [
+    `${u} is better`, `${u} is superior`, `${u} has the edge`,
+    `${u} is the greatest`, `${u} is the best`, `${u} is dominant`,
+    `${u} is stronger`, `${u} is unmatched`, `${u} is unbeatable`
+  ];
+  if (u.includes("messi")) {
+    userPraiseWords.push("messi is the goat", "messi is the greatest", "messi is better", "messi wins", "messi dominates");
+  }
+  if (u.includes("ronaldo")) {
+    userPraiseWords.push("ronaldo is the goat", "ronaldo is the greatest", "ronaldo is better", "ronaldo wins", "ronaldo dominates");
+  }
+  if (u.includes("mbappe")) {
+    userPraiseWords.push("mbappe is better", "mbappe is the best", "mbappe wins");
+  }
+  if (u.includes("haaland")) {
+    userPraiseWords.push("haaland is better", "haaland is the best", "haaland wins");
+  }
+  if (u.includes("argentina")) {
+    userPraiseWords.push("argentina is better", "argentina is superior", "argentina is the best", "argentina wins");
+  }
+  if (u.includes("brazil")) {
+    userPraiseWords.push("brazil is better", "brazil is superior", "brazil is the best", "brazil wins");
+  }
+
+  for (const w of userPraiseWords) {
+    if (t.includes(w)) {
+      console.log(`[Validation] User-praise keyword "${w}". Rejecting.`);
+      return false;
+    }
+  }
+
+  // Self deprecation about own named side
   const selfDeprecation = [
     `${o} is weak`, `${o} is worse`, `${o} is inferior`,
-    `${o} cannot compare`, `${o} lacks`, `${o} has failed`
+    `${o} cannot compare`, `${o} has failed`, `${o} has struggled`,
+    `${o} is losing`, `${o} is poor`, `${o} is overrated`
   ];
-  
-  if (o.includes("messi")) {
-    selfDeprecation.push("messi lacks", "messi failed", "messi is weak");
-  }
-  if (o.includes("ronaldo")) {
-    selfDeprecation.push("ronaldo lacks", "ronaldo failed", "ronaldo is weak");
-  }
+  if (o.includes("ronaldo")) selfDeprecation.push("ronaldo is weak", "ronaldo failed", "ronaldo is overrated");
+  if (o.includes("messi")) selfDeprecation.push("messi is weak", "messi failed", "messi is overrated");
+  if (o.includes("mbappe")) selfDeprecation.push("mbappe is weak", "mbappe failed");
+  if (o.includes("haaland")) selfDeprecation.push("haaland is weak", "haaland failed");
+  if (o.includes("brazil")) selfDeprecation.push("brazil is weak", "brazil failed", "brazil is poor");
+  if (o.includes("argentina")) selfDeprecation.push("argentina is weak", "argentina failed");
 
   for (const w of selfDeprecation) {
     if (t.includes(w)) {
-      console.log(`[Validation Check] Rebuttal contains self-deprecating keyword "${w}". Rejecting.`);
+      console.log(`[Validation] Self-deprecating keyword "${w}". Rejecting.`);
       return false;
     }
   }
@@ -94,11 +141,25 @@ function validateOpponentResponse(text: string, userSide: string, opponentSide: 
 }
 
 /**
- * AI Rival Legend (Opponent) Agent Route Handler with Rebuttal Validation.
+ * Safe fallback rebuttals — confident and on-side.
+ */
+function getFallbackRebuttal(rival: string): string {
+  const r = rival.toLowerCase();
+  if (r.includes("messi")) return "Messi's 8 Ballon d'Ors and the 2022 World Cup define the greatest footballer of all time. No one else comes close to that combination.";
+  if (r.includes("ronaldo")) return "Cristiano Ronaldo has scored over 890 goals and won the Champions League 5 times across 3 different clubs. That adaptability is unmatched.";
+  if (r.includes("mbappe")) return "Mbappé won the World Cup at 19 and became the second-highest scorer in World Cup history. His ceiling is limitless.";
+  if (r.includes("haaland")) return "Haaland scored 52 goals in a single Premier League season. No striker in history has ever hit that rate so consistently.";
+  if (r.includes("brazil")) return "Brazil's 5 World Cup titles and the legacy of Pelé, Ronaldo, Ronaldinho, and Neymar makes them the greatest football nation in history.";
+  if (r.includes("argentina")) return "Argentina are the reigning World Cup champions with 3 titles, 16 Copa Américas, and Messi — the greatest player ever. The records speak for themselves.";
+  return `${rival} has the superior statistics, records, and historical legacy. The numbers are undeniable.`;
+}
+
+/**
+ * AI Rival Legend (Opponent) Agent Route Handler.
  */
 export async function POST(request: Request) {
   try {
-    const { side, rival, argument, userTopics, opponentTopics } = await request.json() as {
+    const { side, rival, argument, opponentTopics } = await request.json() as {
       side: string;
       rival: string;
       argument: string;
@@ -111,10 +172,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required parameters: rival or argument" }, { status: 400 });
     }
 
-    // 1. Validate if user statement is a non-argument (Issue 1)
+    // 1. Check for non-argument inputs
     const nonArgumentReply = checkNonArgument(argument, side);
     if (nonArgumentReply) {
-      console.log("Opponent Non-Argument Validation Triggered. Input:", argument);
+      console.log("[Opponent] Non-argument bypass. Input:", argument);
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
@@ -126,111 +187,92 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-          "x-prompt-length": "0",
-          "x-retrieval-length": "0",
-          "x-retrieved-snippets": encodeURIComponent("Non-argument greeting bypass"),
           "x-opponent-intent": "GREETING_BYPASS",
           "x-selected-file": rival.toLowerCase() + ".md",
-          "x-selected-section": "Greeting Filter"
+          "x-selected-section": "Greeting Filter",
+          "x-prompt-length": "0",
+          "x-retrieval-length": "0",
+          "x-retrieved-snippets": encodeURIComponent("Non-argument bypass")
         }
       });
     }
 
-    // 2. Query Routing for Opponent: Map user argument to relevant counter-context sections
+    // 2. Route argument to relevant counter-context sections
     const argLower = argument.toLowerCase();
     let targetSections = ["Counter Points", "Weaknesses"];
-    if (argLower.includes("defense") || argLower.includes("defender") || argLower.includes("backline") || argLower.includes("squad") || argLower.includes("depth") || argLower.includes("bench") || argLower.includes("manager") || argLower.includes("coach") || argLower.includes("tactic")) {
-      targetSections = ["Tactics", "Weaknesses"];
-    } else if (argLower.includes("goal") || argLower.includes("score") || argLower.includes("record") || argLower.includes("stat") || argLower.includes("assist") || argLower.includes("most") || argLower.includes("number")) {
-      targetSections = ["Records", "Counter Points"];
-    } else if (argLower.includes("trophy") || argLower.includes("won") || argLower.includes("achieve") || argLower.includes("award") || argLower.includes("ballon") || argLower.includes("cup") || argLower.includes("copa") || argLower.includes("title") || argLower.includes("champions league") || argLower.includes("ucl")) {
+
+    if (argLower.includes("defense") || argLower.includes("squad") || argLower.includes("depth") || argLower.includes("tactic") || argLower.includes("bench") || argLower.includes("manager") || argLower.includes("coach")) {
+      targetSections = ["Tactics", "Strengths"];
+    } else if (argLower.includes("goal") || argLower.includes("score") || argLower.includes("record") || argLower.includes("stat") || argLower.includes("assist") || argLower.includes("number")) {
+      targetSections = ["Records", "Achievements"];
+    } else if (argLower.includes("trophy") || argLower.includes("won") || argLower.includes("achiev") || argLower.includes("award") || argLower.includes("ballon") || argLower.includes("cup") || argLower.includes("copa") || argLower.includes("title") || argLower.includes("ucl") || argLower.includes("champions league")) {
       targetSections = ["Achievements", "Counter Points"];
-    } else if (argLower.includes("history") || argLower.includes("timeline") || argLower.includes("origins") || argLower.includes("born")) {
-      targetSections = ["History", "Origins"];
+    } else if (argLower.includes("history") || argLower.includes("origin") || argLower.includes("born") || argLower.includes("founded")) {
+      targetSections = ["History", "Strengths"];
+    } else if (argLower.includes("recent") || argLower.includes("form") || argLower.includes("current") || argLower.includes("season")) {
+      targetSections = ["Recent Form", "Strengths"];
     }
 
     const context = await getEntityMultiSectionContext(rival, targetSections);
 
-    // 3. Compile lightweight memory topics check to prevent duplication (Issue 4)
+    // 3. Memory guard against repeating topics
     let repetitionGuard = "";
     if (opponentTopics && opponentTopics.length > 0) {
-      repetitionGuard = `Avoid repeating points or evidence already mentioned on these topics: ${opponentTopics.join(", ")}. Introduce new arguments or statistics from other sections of the context.`;
+      repetitionGuard = `Do NOT repeat arguments about: ${opponentTopics.slice(-3).join(", ")}. Find a different angle.`;
     }
 
-    // 4. Compose specialized prompt with strict negative instructions (Issue 2 & 3)
-    const prompt = `You are a competitive supporter of TEAM ${rival.toUpperCase()} in a live football debate vs ${side.toUpperCase()}.
-You are defending ${rival.toUpperCase()}.
-Never support ${side.toUpperCase()}.
-Never praise ${side.toUpperCase()}.
-Always argue from the perspective of ${rival.toUpperCase()}.
+    // 4. Lean, focused prompt — optimised for 1B model
+    const u = side.replace("TEAM ", "").trim();
+    const o = rival.replace("TEAM ", "").trim();
 
-Factual Context Details about Team ${rival.toUpperCase()}:
-${context || "None"}
+    const prompt = `You are defending ${o} in a live football debate against ${u}.
 
-User statement to counter: "${argument}"
+Facts about ${o}:
+${context || "Use your knowledge of " + o}
+
+The opponent just said: "${argument}"
 
 ${repetitionGuard}
 
-Write a sharp, competitive rebuttal directly challenging the user's statement.
-CRITICAL CONSTRAINTS:
-- Directly challenge the User statement: "${argument}" before presenting your counterpoint. Speak naturally as a person debating in a live match.
-- NEVER use these metalanguage words or structural labels: "User", "Claim", "Argument", "Rebuttal", "Debate structure", "User's claim", "Acknowledge the point", "Counter", "Conclusion", or "Rival".
-- Keep your response strictly between 15 and 50 words.
-- Output exactly ONE single paragraph. Do NOT write multiple paragraphs, list items, or headers.`;
+Respond with ONE confident paragraph (30-60 words). Directly challenge what they said, then state ONE strong fact that proves ${o} is superior. End with a punchy closing line.
 
-    // Debug logs
-    const loadedContextFile = `${rival.toLowerCase().trim()}.md`;
-    const loadedEntity = rival;
+RULES:
+- Never agree, concede, or say "that's true", "I agree", "to be fair", or "admittedly".
+- Never say "we lost", "we failed", or anything negative about ${o}.  
+- Never praise ${u} or say they are better.
+- No bullet points, no headers, no labels like "Challenge:" or "Counter:".
+- Speak like a confident football pundit, not a robot.`;
 
+    // Debug
     console.log("========================================");
-    console.log("[DEBUG] Opponent Side Assignment Audit:");
-    console.log(`- userSide: ${side}`);
-    console.log(`- opponentSide: ${rival}`);
-    console.log(`- loadedEntity: ${loadedEntity}`);
-    console.log(`- loadedContextFile: ${loadedContextFile}`);
+    console.log("[DEBUG] Opponent Side Assignment:");
+    console.log(`- userSide: ${side} | opponentSide: ${rival}`);
+    console.log(`- sections: ${targetSections.join(", ")}`);
     console.log("========================================");
-
     console.log("Opponent Prompt Length:", prompt.length);
-    console.log("Opponent Mapping Entity:", rival, "Routed Sections:", targetSections);
-    console.log("Opponent Memory Summary:", { userTopics, opponentTopics });
 
-    // 5. Generate response with self-validation and regeneration retry loop
+    // 5. Generate with validation retry loop
     let finalRebuttal = "";
     let validated = false;
     let attempts = 0;
 
     while (!validated && attempts < 3) {
       attempts++;
-      finalRebuttal = await defaultModelProvider.generateText(prompt, []);
+      const raw = await defaultModelProvider.generateText(prompt, []);
+      finalRebuttal = trimToWordLimit(raw, 80);
       validated = validateOpponentResponse(finalRebuttal, side, rival);
       if (!validated) {
-        console.log(`[Validation Failed] Attempt ${attempts} generated: "${finalRebuttal}". Regenerating...`);
+        console.log(`[Validation Failed] Attempt ${attempts}: "${finalRebuttal}". Regenerating...`);
       }
     }
 
     if (!validated) {
-      console.log("[Validation Fallback] Forcing safe fallback statement.");
-      if (rival.toLowerCase().includes("messi")) {
-        finalRebuttal = "Messi is the ultimate playmaker. Copa America and World Cup glory proves his unmatched legacy.";
-      } else if (rival.toLowerCase().includes("ronaldo")) {
-        finalRebuttal = "Cristiano Ronaldo's scoring records and athletic dominance make him the absolute best in football history.";
-      } else if (rival.toLowerCase().includes("mbappe")) {
-        finalRebuttal = "Kylian Mbappe's speed and World Cup final records put him far ahead of the competition.";
-      } else if (rival.toLowerCase().includes("haaland")) {
-        finalRebuttal = "Erling Haaland's cyborg goalscoring rate and Premier League goal records are unbeatable.";
-      } else if (rival.toLowerCase().includes("argentina")) {
-        finalRebuttal = "Argentina is the reigning World Cup champion and Copa America winner. Our record is absolute.";
-      } else if (rival.toLowerCase().includes("brazil")) {
-        finalRebuttal = "Brazil has won five World Cups and produced the greatest legends in history. The pentachampions are supreme.";
-      } else {
-        finalRebuttal = `${rival} has the superior records, performance statistics, and historical achievements.`;
-      }
+      console.log("[Validation Fallback] Using safe fallback.");
+      finalRebuttal = getFallbackRebuttal(rival);
     }
 
-    console.log(`[Validation Success] Selected Rebuttal (Attempt ${attempts}): "${finalRebuttal}"`);
+    console.log(`[Validation OK] Attempt ${attempts}: "${finalRebuttal}"`);
 
-    // Stream the validated response chunk by chunk to maintain UI compatibility
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
@@ -243,12 +285,11 @@ CRITICAL CONSTRAINTS:
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
         "x-prompt-length": prompt.length.toString(),
         "x-retrieval-length": context.length.toString(),
         "x-retrieved-snippets": encodeURIComponent(context.slice(0, 150)),
         "x-opponent-intent": "DEBATE_REBUTTAL",
-        "x-selected-file": loadedContextFile,
+        "x-selected-file": rival.toLowerCase().trim() + ".md",
         "x-selected-section": targetSections.join(", ")
       }
     });
