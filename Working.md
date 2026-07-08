@@ -1,4 +1,4 @@
-# GOAT Arena gameplay & State Operations (Phase 3.5)
+# GOAT Arena gameplay & State Operations (Phase 3.6)
 
 This document explains the query-routing layer, segmented knowledge profiles, strategic coach intent responses, opponent structured rebuttals, and topic repetition memory.
 
@@ -16,32 +16,35 @@ Each profile file contains:
 - `## TACTICS` (positions, roles, style of play)
 - `## WEAKNESSES` (work rate, physical pace decline, transition gaps)
 
-### 2. Query Routing Layer (`src/lib/retrieval.ts`)
-The routing helper `getEntitySectionContext(entityName, query)` checks the query keywords:
-- If history/timeline ➔ routes to `HISTORY`
-- If records/statistics ➔ routes to `RECORDS`
-- If trophies/cups ➔ routes to `ACHIEVEMENTS`
-- If beat/fail/weakness ➔ routes to `WEAKNESSES`
-- Default ➔ routes to `TACTICS`
-It extracts only the matching section text (~200–400 characters), keeping prompt size minimal.
+### 2. Multi-Section Retrieval Layer (`src/lib/retrieval.ts`)
+The helper `getEntityMultiSectionContext(entityName, sections)` extracts and merges multiple markdown segments:
+- **`SUPPORT_POINTS`** ➔ Reads `RECORDS` and `ACHIEVEMENTS`
+- **`COUNTER_ARGUMENTS`** ➔ Reads `TACTICS` and `WEAKNESSES`
+- **`HISTORY`** ➔ Reads `HISTORY`
+- **`ACHIEVEMENTS`** ➔ Reads `ACHIEVEMENTS`
+- **`WEAKNESSES`** ➔ Reads `WEAKNESSES`
+- **`FACTS`** ➔ Reads `RECORDS`
+- **`DEBATE_STRATEGY`** ➔ Reads `TACTICS`
 
 ---
 
-## 🎓 Strategic coach Query Classification
+## 🎓 Dedicated Coach Prompt Templates
 
-- **Prompt Guidelines**:
-  - Classifies query intent based on routed category context.
-  - Answers factually if the question is historical/factual, rather than forcing a Scaloni tactic.
-  - Constrains response length strictly to **1 or 2 sentences** (no list items or bullet points).
+Based on the detected intent, `/api/agent/coach/route.ts` selects a dedicated prompt template:
+- **`SUPPORT_POINTS`**: 3 to 5 bullet points supporting the selected side (each under 12 words).
+- **`COUNTER_ARGUMENTS`**: 1-2 direct sentences countering the rival (under 30 words).
+- **`HISTORY`**: Factual 1-2 sentence replies about history (no coach tactics).
+- **`FACTS`**: 1-2 sentence replies answering statistical queries.
+- **`ACHIEVEMENTS`**: Lists only trophies/honors (under 2 sentences).
+- **`WEAKNESSES`**: Flaws/vulnerabilities (1-2 sentences).
+- **`DEBATE_STRATEGY`**: 1-2 sentences of tactical focus advice.
 
 ---
 
 ## 🥊 Structured AI Opponent Rebuttals
 
-- **Prompt Guidelines**:
-  - Directs the model to address the user's latest claim directly: `${argument}`. Banned from changing topics.
-  - Required sequence: **Acknowledge User Point ➔ Challenge with Statistics ➔ Punchy Conclusion**.
-  - Limits length strictly to **50 words max** in one single paragraph.
+- Required sequence: **Acknowledge User Point ➔ Challenge with Statistics ➔ Punchy Conclusion**.
+- Limits length strictly to **50 words max** in one single paragraph.
 
 ---
 

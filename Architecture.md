@@ -1,4 +1,4 @@
-# GOAT Arena Architecture (Phase 3.5)
+# GOAT Arena Architecture (Phase 3.6)
 
 GOAT Arena is built as a **local-first AI debate platform** running on-device using QVAC with a lightweight, 1-billion parameter instruct model.
 
@@ -6,7 +6,7 @@ GOAT Arena is built as a **local-first AI debate platform** running on-device us
 
 ## 🏗️ System Components
 
-The Phase 3.5 architecture incorporates a query routing layer that dynamically slices knowledge files into sections (History, Records, Achievements, Tactics, Weaknesses), loading only the relevant category segment to keep prompt contexts small and reasoning quality high:
+The Phase 3.6 architecture incorporates a query routing layer that dynamically slices knowledge files into sections, loading only the relevant category segment and executing dedicated prompts:
 
 ```mermaid
 graph TD
@@ -14,15 +14,16 @@ graph TD
   UI -->|Argument Submission| DebateState[Debate Feed State]
   
   subgraph Query Routing Layer
-    CoachState -->|User Query| Router[getEntitySectionContext]
+    CoachState -->|User Query| Router[getEntityMultiSectionContext]
     DebateState -->|User Argument| Router
-    Router -->|Check keywords| SectionDetect{History, Records, Achievements, Tactics, Weaknesses}
+    Router -->|Check keywords| SectionDetect{Classify Coach Intent: 7 Categories}
+    SectionDetect -->|Select Template| PromptTemplate[Dedicated Prompt Selection]
     SectionDetect -->|Read Target Segment| KB[(Segmented Markdown Files)]
   end
 
   subgraph Agent Endpoints
-    CoachState -->|routed Segment Context| CoachRoute[/api/agent/coach]
-    DebateState -->|routed Segment Context| OpponentRoute[/api/agent/opponent]
+    CoachState & PromptTemplate -->|routed Context & Template| CoachRoute[/api/agent/coach]
+    DebateState -->|routed Context| OpponentRoute[/api/agent/opponent]
   end
 
   subgraph Local Core Services
@@ -44,10 +45,13 @@ graph TD
 
 ### 3. Private Tactical Assistant (Strategic Timeout Advisor)
 - Unlocked *only* during timeouts. Transitioning out of timeouts clears state variables.
-- Outputs **1 or 2 sentences** matching user's intent section (fact/history/strategy).
+- Intent classification determines which prompt template is selected (`SUPPORT_POINTS`, `COUNTER_ARGUMENTS`, `HISTORY`, `FACTS`, `ACHIEVEMENTS`, `WEAKNESSES`, `DEBATE_STRATEGY`), routing questions to custom answers.
 
 ### 4. AI Rival Legend (Opponent Agent)
 - Rebuttals directly challenge the user's latest claim.
 - Structured format: **Acknowledge ➔ Counter ➔ Conclusion**.
 - Limits response to **50 words max** in one single paragraph.
 - Employs topic repetition guards.
+
+### 5. Deterministic AI Referee
+- Mathematical score aggregation (0-10 on each exchange). AI referee compiles verdict explanation based on computed winner.

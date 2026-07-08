@@ -237,3 +237,53 @@ export async function getEntitySectionContext(entityName: string, query: string)
     return { section: "DEFAULT", content: "" };
   }
 }
+
+export async function getEntityMultiSectionContext(entityName: string, sections: string[]): Promise<string> {
+  try {
+    const normalized = entityName.toLowerCase().trim();
+    let fileName = "";
+    if (normalized.includes("messi")) fileName = "messi.md";
+    else if (normalized.includes("ronaldo")) fileName = "ronaldo.md";
+    else if (normalized.includes("mbappe") || normalized.includes("mbappé")) fileName = "mbappe.md";
+    else if (normalized.includes("haaland")) fileName = "haaland.md";
+    else if (normalized.includes("argentina")) fileName = "argentina.md";
+    else if (normalized.includes("brazil")) fileName = "brazil.md";
+
+    if (!fileName) return "";
+
+    const knowledgeDir = path.join(process.cwd(), "knowledge");
+    const filePath = path.join(knowledgeDir, fileName);
+    if (!fs.existsSync(filePath)) return "";
+
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+    const lines = fileContent.split("\n");
+
+    const matchedContent: string[] = [];
+
+    for (const targetSection of sections) {
+      let insideSection = false;
+      const sectionLines: string[] = [];
+      for (const line of lines) {
+        if (line.startsWith("## ")) {
+          const header = line.replace("## ", "").toUpperCase().trim();
+          if (header.includes(targetSection.toUpperCase())) {
+            insideSection = true;
+          } else {
+            insideSection = false;
+          }
+        } else if (insideSection) {
+          sectionLines.push(line);
+        }
+      }
+      const sectionText = sectionLines.join("\n").trim();
+      if (sectionText) {
+        matchedContent.push(`### ${targetSection.toUpperCase()}\n${sectionText}`);
+      }
+    }
+
+    return matchedContent.join("\n\n").trim() || fileContent.slice(0, 800);
+  } catch (error) {
+    console.error("getEntityMultiSectionContext error:", error);
+    return "";
+  }
+}
