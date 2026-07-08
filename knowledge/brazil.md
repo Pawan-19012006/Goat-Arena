@@ -1,11 +1,38 @@
-# BRAZIL NATIONAL TEAM
-## HISTORY
-The Brazilian Football Confederation was founded in 1914. Brazil played their first international match in 1914 against Exeter City. They are historically famous for popularizing the concept of "Joga Bonito" (play beautifully). World-famous legends include Pelé, Ronaldo Nazário, Ronaldinho, Garrincha, Zico, Romário, and Neymar Jr.
-## RECORDS
-Brazil is the only nation to have played in every single FIFA World Cup tournament. Pelé remains the youngest player to score and win a World Cup final (1958, aged 17). Brazil holds the record for the most FIFA World Cup titles (5).
-## ACHIEVEMENTS
-Brazil has won 5 FIFA World Cups (1958, 1962, 1970, 1994, 2002), the most in history. They have won 9 Copa América titles, 4 FIFA Confederations Cups, and 2 Olympic Gold Medals (2016, 2020).
-## TACTICS
-Brazil is famous for fluid attacking structures, Joga Bonito flair, expressive individual wing play, and overlapping offensive fullbacks. Historically under Vicente Feola (1958) and Mário Zagallo, they utilized 4-2-4 or 4-3-3 structures, while the modern setup runs aggressive 4-2-3-1 shapes.
-## WEAKNESSES
-The team has historically struggled with defensive transition spacing, leaving wide channels open for counter-attacks, and can exhibit vulnerability under structured European defensive blocks.
+# Origins
+The Brazilian Football Confederation was founded in 1914. The national team played their first international match in 1914 against English club Exeter City.
+
+# History
+Brazil became the dominant football nation in the mid-20th century, winning World Cups in 1958, 1962, and 1970 led by Pelé, and later in 1994 and 2002. They popularized Joga Bonito.
+
+# Country
+Brazil represents the nation of Brazil.
+
+# Club Career
+Not applicable for national teams.
+
+# Records
+Brazil is the only country to play in every single FIFA World Cup. They hold the record for the most FIFA World Cup titles (5).
+
+# Achievements
+Brazil has won 5 FIFA World Cups, 9 Copa Américas, 4 FIFA Confederations Cups, and 2 Olympic Gold Medals (2016, 2020).
+
+# Managers
+Brazil's historic managers include Vicente Feola, Mário Zagallo, Carlos Alberto Parreira, Luiz Felipe Scolari, and Tite.
+
+# Major Tournaments
+Winners of the FIFA World Cup in 1958, 1962, 1970, 1994, and 2002. Winners of the Copa América (most recently in 2019).
+
+# Recent Form
+Reached the quarter-finals of the 2022 World Cup and runners-up in Copa América 2021. Currently undergoing rebuild in the World Cup qualifiers.
+
+# Strengths
+Exceptional individual flair, pace on the wings, overlapping offensive fullbacks, and a deep history of producing world-class legends (Pelé, Ronaldo, Ronaldinho).
+
+# Weaknesses
+Struggles with defensive transition spacing, leaving wide channels open for counters, and can lack tactical discipline under structured European defensive blocks.
+
+# Debate Points
+Brazil is the most successful national team in football history with 5 World Cups, and has produced the most iconic roster of legends.
+
+# Counter Points
+Point out that Brazil has not won a FIFA World Cup since 2002 (a 20+ year drought), and recently lost the Copa América final to Argentina in their own home stadium (Maracanã).

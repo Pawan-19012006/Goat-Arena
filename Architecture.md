@@ -1,4 +1,4 @@
-# GOAT Arena Architecture (Phase 3.6)
+# GOAT Arena Architecture (Phase 3.7)
 
 GOAT Arena is built as a **local-first AI debate platform** running on-device using QVAC with a lightweight, 1-billion parameter instruct model.
 
@@ -6,24 +6,31 @@ GOAT Arena is built as a **local-first AI debate platform** running on-device us
 
 ## 🏗️ System Components
 
-The Phase 3.6 architecture incorporates a query routing layer that dynamically slices knowledge files into sections, loading only the relevant category segment and executing dedicated prompts:
+The Phase 3.7 architecture incorporates a validation check-point, a deterministic lookup bypass, a query routing layer, and an updated telemetry debugger:
 
 ```mermaid
 graph TD
   UI[Debate Arena UI] -->|Direct User Query| CoachState[Private Assistant State]
   UI -->|Argument Submission| DebateState[Debate Feed State]
   
-  subgraph Query Routing Layer
-    CoachState -->|User Query| Router[getEntityMultiSectionContext]
-    DebateState -->|User Argument| Router
-    Router -->|Check keywords| SectionDetect{Classify Coach Intent: 7 Categories}
-    SectionDetect -->|Select Template| PromptTemplate[Dedicated Prompt Selection]
-    SectionDetect -->|Read Target Segment| KB[(Segmented Markdown Files)]
+  subgraph Input Validation & Routing Checkpoints
+    CoachState -->|Factual Lookup Request| CoachBypass{Deterministic Bypass?}
+    CoachBypass -->|Yes| UI
+    CoachBypass -->|No| CoachRouter[Classify Coach Intent: 7 Categories]
+    
+    DebateState -->|User Input| OpponentValidation{Is Greeting/Filler?}
+    OpponentValidation -->|Yes: GREETING_BYPASS| UI
+    OpponentValidation -->|No| OpponentRouter[Map User Claim to Rival Counter-Context]
+  end
+
+  subgraph Multi-Section Retrieval
+    CoachRouter -->|Read Target Segments| KB[(13-Section markdown Files)]
+    OpponentRouter -->|Read Target Segments| KB
   end
 
   subgraph Agent Endpoints
-    CoachState & PromptTemplate -->|routed Context & Template| CoachRoute[/api/agent/coach]
-    DebateState -->|routed Context| OpponentRoute[/api/agent/opponent]
+    CoachRouter & KB -->|Routed Context & Template| CoachRoute[/api/agent/coach]
+    OpponentRouter & KB -->|Routed Context & Memory| OpponentRoute[/api/agent/opponent]
   end
 
   subgraph Local Core Services
@@ -37,21 +44,19 @@ graph TD
 
 ## 🧩 Component Details
 
-### 1. Reorganized Database Profiles
-- All six profile files segmented under standardized `## HISTORY`, `## RECORDS`, `## ACHIEVEMENTS`, `## TACTICS`, and `## WEAKNESSES` subheaders.
+### 1. 13-Section markdown Profiles
+- All player and team profiles standardized into exactly 13 sections: Origins, History, Country, Club Career, Records, Achievements, Managers, Major Tournaments, Recent Form, Strengths, Weaknesses, Debate Points, Counter Points.
 
-### 2. Query Routing Layer (`src/lib/retrieval.ts`)
-- Matches questions dynamically to markdown headers, extracting *only* that subsection. Reduces prompt context to ~200-400 characters, leading to high-performance local inference.
+### 2. Private Tactical Assistant (Coach Agent)
+- Unlocked *only* during timeouts.
+- **Deterministic Facts Lookup**: Bypass model execution for country, age, club, goals, trophies, world cups, ballon d'or counts, managers, and history. Answer instantly.
+- **Intent-based Templates**: Standard templates for `FACT`, `HISTORY`, `ACHIEVEMENT`, `SUPPORT_POINTS`, `COUNTER_ARGUMENT`, `WEAKNESSES`, `TACTICAL_ADVICE`, limiting replies to 1-3 sentences.
 
-### 3. Private Tactical Assistant (Strategic Timeout Advisor)
-- Unlocked *only* during timeouts. Transitioning out of timeouts clears state variables.
-- Intent classification determines which prompt template is selected (`SUPPORT_POINTS`, `COUNTER_ARGUMENTS`, `HISTORY`, `FACTS`, `ACHIEVEMENTS`, `WEAKNESSES`, `DEBATE_STRATEGY`), routing questions to custom answers.
+### 3. AI Rival Legend (Opponent Agent)
+- **Greeting Validation Check**: Detects greeting/fillers (e.g. "hello", "hi", "ok") and prompts user to state case in character.
+- **Anti-Leakage prompt Rules**: Banned words: "User", "Claim", "Rebuttal", "Debate structure", "User's claim", "Acknowledge the point", "Counter", "Conclusion".
+- **Rebuttal limits**: Restricted to **15-50 words** in one paragraph.
+- **Topic Memory**: Prevent repeated arguments using the telemetry memory list.
 
-### 4. AI Rival Legend (Opponent Agent)
-- Rebuttals directly challenge the user's latest claim.
-- Structured format: **Acknowledge ➔ Counter ➔ Conclusion**.
-- Limits response to **50 words max** in one single paragraph.
-- Employs topic repetition guards.
-
-### 5. Deterministic AI Referee
-- Mathematical score aggregation (0-10 on each exchange). AI referee compiles verdict explanation based on computed winner.
+### 4. Telemetry observed metrics
+- Render debug grid containing prompt length, retrieval size, network latency, detected intent, selected sections, active files, and topic memory maps.

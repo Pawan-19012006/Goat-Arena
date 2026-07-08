@@ -200,27 +200,45 @@ export async function getEntitySectionContext(entityName: string, query: string)
 
     const fileContent = fs.readFileSync(filePath, "utf-8");
 
-    // Detect section based on query keywords
+    // Detect section based on query keywords matching our 13 categories
     const q = query.toLowerCase();
-    let section = "TACTICS";
-    if (q.includes("history") || q.includes("origin") || q.includes("timeline") || q.includes("old") || q.includes("young") || q.includes("first") || q.includes("when") || q.includes("born") || q.includes("who") || q.includes("founder") || q.includes("began") || q.includes("start")) {
-      section = "HISTORY";
+    let section = "Tactics";
+    if (q.includes("history") || q.includes("timeline") || q.includes("old") || q.includes("young") || q.includes("first") || q.includes("when") || q.includes("born") || q.includes("who") || q.includes("founder") || q.includes("began") || q.includes("start")) {
+      section = "History";
+    } else if (q.includes("origin") || q.includes("birth") || q.includes("child")) {
+      section = "Origins";
+    } else if (q.includes("country") || q.includes("nation") || q.includes("represent")) {
+      section = "Country";
+    } else if (q.includes("club") || q.includes("team") || q.includes("league") || q.includes("career")) {
+      section = "Club Career";
     } else if (q.includes("record") || q.includes("stat") || q.includes("goal") || q.includes("assist") || q.includes("most") || q.includes("number")) {
-      section = "RECORDS";
+      section = "Records";
     } else if (q.includes("trophy") || q.includes("won") || q.includes("achieve") || q.includes("award") || q.includes("ballon") || q.includes("cup") || q.includes("copa") || q.includes("title")) {
-      section = "ACHIEVEMENTS";
+      section = "Achievements";
+    } else if (q.includes("manager") || q.includes("coach") || q.includes("boss")) {
+      section = "Managers";
+    } else if (q.includes("tournament") || q.includes("world cup") || q.includes("euro") || q.includes("copa america")) {
+      section = "Major Tournaments";
+    } else if (q.includes("recent") || q.includes("form") || q.includes("streak") || q.includes("current")) {
+      section = "Recent Form";
+    } else if (q.includes("strength") || q.includes("solid") || q.includes("best") || q.includes("greatest")) {
+      section = "Strengths";
     } else if (q.includes("weak") || q.includes("loophole") || q.includes("fail") || q.includes("defeat") || q.includes("beat") || q.includes("lose") || q.includes("poor")) {
-      section = "WEAKNESSES";
+      section = "Weaknesses";
+    } else if (q.includes("support") || q.includes("argue") || q.includes("points") || q.includes("evidence")) {
+      section = "Debate Points";
+    } else if (q.includes("counter") || q.includes("rebut") || q.includes("refute") || q.includes("against")) {
+      section = "Counter Points";
     }
 
-    // Extract section from segmented markdown file
+    // Extract section from segmented markdown file starting with # [Header]
     const lines = fileContent.split("\n");
     let insideSection = false;
     const sectionLines: string[] = [];
     for (const line of lines) {
-      if (line.startsWith("## ")) {
-        const header = line.replace("## ", "").toUpperCase().trim();
-        if (header.includes(section)) {
+      if (line.startsWith("# ")) {
+        const header = line.replace("# ", "").toUpperCase().trim();
+        if (header === section.toUpperCase()) {
           insideSection = true;
         } else {
           insideSection = false;
@@ -264,9 +282,9 @@ export async function getEntityMultiSectionContext(entityName: string, sections:
       let insideSection = false;
       const sectionLines: string[] = [];
       for (const line of lines) {
-        if (line.startsWith("## ")) {
-          const header = line.replace("## ", "").toUpperCase().trim();
-          if (header.includes(targetSection.toUpperCase())) {
+        if (line.startsWith("# ")) {
+          const header = line.replace("# ", "").toUpperCase().trim();
+          if (header === targetSection.toUpperCase()) {
             insideSection = true;
           } else {
             insideSection = false;

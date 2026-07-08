@@ -1,6 +1,6 @@
-# GOAT Arena gameplay & State Operations (Phase 3.6)
+# GOAT Arena gameplay & State Operations (Phase 3.7)
 
-This document explains the query-routing layer, segmented knowledge profiles, strategic coach intent responses, opponent structured rebuttals, and topic repetition memory.
+This document explains the input validation, deterministic lookup bypass, query-routing layer, strategic coach intent responses, opponent structured rebuttals, and topic repetition memory.
 
 ---
 
@@ -9,45 +9,44 @@ This document explains the query-routing layer, segmented knowledge profiles, st
 To prevent the AI from receiving irrelevant or oversized context, the database is divided into segmented subheaders and matched using keyword query-routing:
 
 ### 1. Database Subheaders (`knowledge/`)
-Each profile file contains:
-- `## HISTORY` (birth, origins, academy, transfers, eras)
-- `## RECORDS` (specific record numbers, goals, assists)
-- `## ACHIEVEMENTS` (trophies, awards, World Cups)
-- `## TACTICS` (positions, roles, style of play)
-- `## WEAKNESSES` (work rate, physical pace decline, transition gaps)
+Each profile file contains exactly these 13 sections:
+- `# Origins`
+- `# History`
+- `# Country`
+- `# Club Career`
+- `# Records`
+- `# Achievements`
+- `# Managers`
+- `# Major Tournaments`
+- `# Recent Form`
+- `# Strengths`
+- `# Weaknesses`
+- `# Debate Points`
+- `# Counter Points`
 
 ### 2. Multi-Section Retrieval Layer (`src/lib/retrieval.ts`)
-The helper `getEntityMultiSectionContext(entityName, sections)` extracts and merges multiple markdown segments:
-- **`SUPPORT_POINTS`** ➔ Reads `RECORDS` and `ACHIEVEMENTS`
-- **`COUNTER_ARGUMENTS`** ➔ Reads `TACTICS` and `WEAKNESSES`
-- **`HISTORY`** ➔ Reads `HISTORY`
-- **`ACHIEVEMENTS`** ➔ Reads `ACHIEVEMENTS`
-- **`WEAKNESSES`** ➔ Reads `WEAKNESSES`
-- **`FACTS`** ➔ Reads `RECORDS`
-- **`DEBATE_STRATEGY`** ➔ Reads `TACTICS`
+The helper `getEntityMultiSectionContext(entityName, sections)` extracts and merges multiple markdown segments matching the `# ` headers.
 
 ---
 
-## 🎓 Dedicated Coach Prompt Templates
+## 🎓 Tactical Coach Query Routing
 
-Based on the detected intent, `/api/agent/coach/route.ts` selects a dedicated prompt template:
-- **`SUPPORT_POINTS`**: 3 to 5 bullet points supporting the selected side (each under 12 words).
-- **`COUNTER_ARGUMENTS`**: 1-2 direct sentences countering the rival (under 30 words).
-- **`HISTORY`**: Factual 1-2 sentence replies about history (no coach tactics).
-- **`FACTS`**: 1-2 sentence replies answering statistical queries.
-- **`ACHIEVEMENTS`**: Lists only trophies/honors (under 2 sentences).
-- **`WEAKNESSES`**: Flaws/vulnerabilities (1-2 sentences).
-- **`DEBATE_STRATEGY`**: 1-2 sentences of tactical focus advice.
+### 1. Deterministic Facts Lookup
+For questions regarding `country`, `age`, `club`, `goals`, `trophies`, `world cups`, `ballon d'or counts`, `managers`, and `history`, the endpoint immediately answers directly from a structured mapping list. It bypasses AI model execution completely, guaranteeing zero hallucination.
+
+### 2. Intent-based Routing & Prompts
+For non-deterministic questions, the coach routes the query to one of the templates based on detected intent (`FACT`, `HISTORY`, `ACHIEVEMENT`, `SUPPORT_POINTS`, `COUNTER_ARGUMENT`, `WEAKNESSES`, `TACTICAL_ADVICE`), limiting output to 1-3 sentences or 3-4 bullets.
 
 ---
 
-## 🥊 Structured AI Opponent Rebuttals
+## 🥊 AI Opponent Rebuttals & Validation
 
-- Required sequence: **Acknowledge User Point ➔ Challenge with Statistics ➔ Punchy Conclusion**.
-- Limits length strictly to **50 words max** in one single paragraph.
+### 1. Non-Argument Validation
+If the user inputs a short statement, greeting, or filler (e.g. "hello", "hi", "ok"), the Opponent bypasses standard rebuttals and prompts the user to state their case in character.
 
----
+### 2. Anti-Leakage Constraints
+The Opponent prompt explicitly bans using metalanguage structures such as: "User's claim", "User", "Claim", "Rebuttal", "Debate structure", "Acknowledge the point", "Counter", and "Conclusion".
 
-## 🧠 Memory topic repetition Guard
-
-- Tracks previously discussed topic triggers (`world_cups`, `recent_form`, `defense`, `squad_depth`, `manager`, `star_players`) in the history transcript to instruct the AI opponent to focus on other angles.
+### 3. Rebuttal constraints
+- Limits length strictly to **15-50 words** in exactly one paragraph.
+- Matches user topics against topic repetition memory to ensure argument diversity.

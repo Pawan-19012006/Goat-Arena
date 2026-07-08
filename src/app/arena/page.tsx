@@ -142,6 +142,8 @@ function ArenaContent() {
     sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
   });
   const [scoredExchangesCount, setScoredExchangesCount] = useState(0);
+  const [userTopics, setUserTopics] = useState<string[]>([]);
+  const [opponentTopics, setOpponentTopics] = useState<string[]>([]);
 
   // Debug mode states
   const [isDebugMode, setIsDebugMode] = useState(false);
@@ -150,7 +152,22 @@ function ArenaContent() {
     retrievalLength: number;
     latency: number;
     snippets: string;
-  }>({ promptLength: 0, retrievalLength: 0, latency: 0, snippets: "" });
+    detectedIntent: string;
+    selectedSection: string;
+    selectedFile: string;
+    opponentMemory: string;
+    coachQueryCategory: string;
+  }>({
+    promptLength: 0,
+    retrievalLength: 0,
+    latency: 0,
+    snippets: "",
+    detectedIntent: "N/A",
+    selectedSection: "N/A",
+    selectedFile: "N/A",
+    opponentMemory: "[]",
+    coachQueryCategory: "N/A"
+  });
 
   // Refs for scrolling
   const feedEndRef = useRef<HTMLDivElement>(null);
@@ -284,12 +301,20 @@ function ArenaContent() {
       const pLen = res.headers.get("x-prompt-length");
       const rLen = res.headers.get("x-retrieval-length");
       const rSnips = res.headers.get("x-retrieved-snippets");
+      const cIntent = res.headers.get("x-coach-intent");
+      const oIntent = res.headers.get("x-opponent-intent");
+      const selFile = res.headers.get("x-selected-file");
+      const selSec = res.headers.get("x-selected-section");
 
       setDebugStats(prev => ({
         ...prev,
         promptLength: pLen ? parseInt(pLen, 10) : prev.promptLength,
         retrievalLength: rLen ? parseInt(rLen, 10) : prev.retrievalLength,
-        snippets: rSnips ? decodeURIComponent(rSnips) : prev.snippets
+        snippets: rSnips ? decodeURIComponent(rSnips) : prev.snippets,
+        detectedIntent: cIntent || oIntent || prev.detectedIntent,
+        selectedSection: selSec || prev.selectedSection,
+        selectedFile: selFile || prev.selectedFile,
+        coachQueryCategory: cIntent || prev.coachQueryCategory
       }));
 
       if (!res.body) throw new Error("No response stream.");
@@ -305,6 +330,12 @@ function ArenaContent() {
         text += chunk;
         setText(text);
       }
+
+      const duration = Math.round(performance.now() - startTime);
+      setDebugStats(prev => ({
+        ...prev,
+        latency: duration
+      }));
     } catch (e) {
       console.error(e);
       text = endpoint.includes("coach") ? "Coach temporarily unavailable." : "Rival Legend temporarily unavailable.";
@@ -315,6 +346,19 @@ function ArenaContent() {
       setDebugStats(prev => ({ ...prev, latency: elapsed }));
     }
     return text;
+  };
+
+  // Helper to identify topic categories from statements
+  const detectTopics = (text: string): string[] => {
+    const clean = text.toLowerCase();
+    const topics: string[] = [];
+    if (clean.includes("world cup") || clean.includes("worldcup") || clean.includes("troph")) topics.push("world_cups");
+    if (clean.includes("recent") || clean.includes("form") || clean.includes("current") || clean.includes("streak")) topics.push("recent_form");
+    if (clean.includes("defen") || clean.includes("backline") || clean.includes("tackle") || clean.includes("solid")) topics.push("defense");
+    if (clean.includes("squad") || clean.includes("depth") || clean.includes("bench")) topics.push("squad_depth");
+    if (clean.includes("manager") || clean.includes("coach") || clean.includes("tact")) topics.push("manager");
+    if (clean.includes("star") || clean.includes("legend") || clean.includes("ballon") || clean.includes("goal") || clean.includes("assist")) topics.push("star_players");
+    return topics;
   };
 
   // Submit Argument to Rival Opponent
@@ -337,6 +381,14 @@ function ArenaContent() {
     setUserMomentum(prev => Math.min(95, prev + userShift));
     setRivalMomentum(prev => Math.max(15, prev - Math.floor(userShift * 0.7)));
 
+    // Detect user topics
+    const newUList = detectTopics(userText);
+    let currentUTopics = userTopics;
+    if (newUList.length > 0) {
+      currentUTopics = Array.from(new Set([...userTopics, ...newUList]));
+      setUserTopics(currentUTopics);
+    }
+
     // Map transcript history for QVAC format
     const historyPayload = updatedFeed.map(f => ({
       role: f.role === "user" ? "user" as const : "assistant" as const,
@@ -346,7 +398,14 @@ function ArenaContent() {
     // Trigger opponent response stream
     const finalOpponentText = await streamReader(
       "/api/agent/opponent",
-      { side: data.teamName, rival: data.rival, argument: userText, history: historyPayload },
+      {
+        side: data.teamName,
+        rival: data.rival,
+        argument: userText,
+        history: historyPayload,
+        userTopics: currentUTopics,
+        opponentTopics: opponentTopics
+      },
       setCurrentOpponentTokenStream,
       setIsOpponentStreaming
     );
@@ -358,6 +417,19 @@ function ArenaContent() {
       timestamp: getMatchTimestamp()
     }]);
     setCurrentOpponentTokenStream("");
+
+    // Detect opponent topics
+    const newOList = detectTopics(finalOpponentText);
+    const updatedOpponentTopics = newOList.length > 0
+      ? Array.from(new Set([...opponentTopics, ...newOList]))
+      : opponentTopics;
+    if (newOList.length > 0) {
+      setOpponentTopics(updatedOpponentTopics);
+    }
+    setDebugStats(prev => ({
+      ...prev,
+      opponentMemory: JSON.stringify({ userTopics: currentUTopics, opponentTopics: updatedOpponentTopics })
+    }));
 
     // Shift momentum in Opponent's favor
     const rivalShift = Math.floor(Math.random() * 12) + 5;
@@ -486,12 +558,13 @@ function ArenaContent() {
       });
 
       const pLen = res.headers.get("x-prompt-length");
-      setDebugStats({
+      setDebugStats(prev => ({
+        ...prev,
         promptLength: pLen ? parseInt(pLen, 10) : 0,
         retrievalLength: 0,
         latency: Math.round(performance.now() - startTime),
         snippets: "N/A (Referee processes debate summary)"
-      });
+      }));
     } catch (e: unknown) {
       console.error(e);
       setError("Failed to compile local referee results.");
@@ -820,7 +893,11 @@ function ArenaContent() {
                   <div><span className="text-slate-500 font-bold">PROMPT LENGTH:</span> {debugStats.promptLength} chars</div>
                   <div><span className="text-slate-500 font-bold">RETRIEVAL SIZE:</span> {debugStats.retrievalLength} chars</div>
                   <div><span className="text-slate-500 font-bold">LATENCY SPEED:</span> {debugStats.latency} ms</div>
-                  <div><span className="text-slate-500 font-bold">CONTEXT STATUS:</span> OK</div>
+                  <div><span className="text-slate-500 font-bold">DETECTED INTENT:</span> {debugStats.detectedIntent}</div>
+                  <div><span className="text-slate-500 font-bold">SELECTED SECTION:</span> {debugStats.selectedSection}</div>
+                  <div><span className="text-slate-500 font-bold">SELECTED FILE:</span> {debugStats.selectedFile}</div>
+                  <div><span className="text-slate-500 font-bold">COACH CATEGORY:</span> {debugStats.coachQueryCategory}</div>
+                  <div className="col-span-2"><span className="text-slate-500 font-bold">OPPONENT TOPICS MEMORY:</span> {debugStats.opponentMemory}</div>
                 </div>
                 {debugStats.snippets && (
                   <div className="mt-3 border-t border-blue-950/30 pt-2 text-[10px]">
@@ -1425,6 +1502,8 @@ function ArenaContent() {
                     sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
                   });
                   setScoredExchangesCount(0);
+                  setUserTopics([]);
+                  setOpponentTopics([]);
                   setActiveStep("ARSENAL");
                 }}
                 className="flex-1 px-5 py-4 bg-slate-900 border border-slate-800 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:bg-slate-850 transition-all flex items-center justify-center gap-1.5"

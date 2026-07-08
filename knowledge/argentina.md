@@ -1,11 +1,38 @@
-# ARGENTINA NATIONAL TEAM
-## HISTORY
-The Argentine Football Association was founded in 1893, making it one of the oldest in the world. Argentina played their first official international match in 1901 against Uruguay. Their historically famous squad eras include the 1978 and 1986 World Cup winners, and the modern "La Scaloneta" era. Legends include Diego Maradona, Lionel Messi, Mario Kempes, Gabriel Batistuta, and Javier Zanetti.
-## RECORDS
-Argentina holds the record for the most Copa América titles in football history (16 titles). They hold the longest undefeated streak in Argentine history, going 36 games unbeaten between 2019 and 2022 under Lionel Scaloni, falling just one game short of Italy's world record.
-## ACHIEVEMENTS
-Argentina has won 3 FIFA World Cups (1978, 1986, 2022) and has been runners-up 3 times (1930, 1990, 2014). They have won 16 Copa América titles, the 1992 FIFA Confederations Cup, and the 2022 Finalissima.
-## TACTICS
-Argentina plays with high-density midfield possession, quick short-passing combinations, and defensive resilience led by Emiliano Martínez in goal and Cristian Romero in defense. Under Lionel Scaloni, they run fluid 4-3-3 or 4-4-2 structures designed to protect possession.
-## WEAKNESSES
-The team is heavily reliant on playmaker creativity to break down low blocks, and can show vulnerability to high-intensity physical presses and direct counter-attacking pace.
+# Origins
+The Argentine Football Association was founded in 1893, making it one of the oldest FA associations. The national team played their first match in 1901 against Uruguay.
+
+# History
+Argentina has been a global force, reaching the first World Cup final in 1901 (wait, 1930). They won World Cups in 1978 under Menotti and 1986 under Bilardo, and entered a modern golden era under Lionel Scaloni.
+
+# Country
+Argentina represents the nation of Argentina.
+
+# Club Career
+Not applicable for national teams.
+
+# Records
+Argentina holds the record for the most Copa América titles in football history (16 titles). They completed a 36-game unbeaten run under Scaloni (2019-2022).
+
+# Achievements
+Argentina has won 3 FIFA World Cups (1978, 1986, 2022) and 16 Copa Américas. They have won 1 Confederations Cup and the 2022 Finalissima.
+
+# Managers
+Argentina's historic managers include César Luis Menotti, Carlos Bilardo, Alfio Basile, and Lionel Scaloni.
+
+# Major Tournaments
+Winners of the FIFA World Cup in 1978, 1986, and 2022. Winners of the Copa América (most recently in 2021 and 2024).
+
+# Recent Form
+Reigning World Cup Champions (2022) and back-to-back Copa América Champions (2021, 2024). Currently ranked #1 in the FIFA World Rankings.
+
+# Strengths
+Fluid possession-based midfield engine (De Paul, Mac Allister, Enzo), elite goalkeeper performance from Emiliano Martínez, and modern tactical stability under Scaloni.
+
+# Weaknesses
+Can be overly reliant on central playmakers to break down low blocks, and vulnerable to high-intensity physical presses and direct counter-attacking pace.
+
+# Debate Points
+Argentina is the modern king of international football, holding the World Cup, back-to-back Copa Américas, and the FIFA #1 ranking simultaneously.
+
+# Counter Points
+Point out that Brazil still has 5 World Cups compared to Argentina's 3, and that Argentina went through a major 28-year trophy drought between 1993 and 2021.
