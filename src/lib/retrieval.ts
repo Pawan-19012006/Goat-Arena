@@ -145,3 +145,34 @@ export const defaultRetrieval = new MarkdownKeywordRetrieval();
 export async function getRetrievalContext(query: string, limit = 3): Promise<string> {
   return defaultRetrieval.retrieve(query, limit);
 }
+
+export async function getEntityContext(entityName: string): Promise<string> {
+  try {
+    const normalized = entityName.toLowerCase().trim();
+    let fileName = "";
+    if (normalized.includes("messi")) fileName = "messi.md";
+    else if (normalized.includes("ronaldo")) fileName = "ronaldo.md";
+    else if (normalized.includes("mbappe") || normalized.includes("mbappé")) fileName = "mbappe.md";
+    else if (normalized.includes("haaland")) fileName = "haaland.md";
+    else if (normalized.includes("argentina")) fileName = "argentina.md";
+    else if (normalized.includes("brazil")) fileName = "brazil.md";
+
+    if (!fileName) {
+      console.warn(`No explicit entity mapping found for: ${entityName}`);
+      return "";
+    }
+
+    const knowledgeDir = path.join(process.cwd(), "knowledge");
+    const filePath = path.join(knowledgeDir, fileName);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`Entity knowledge file not found at: ${filePath}`);
+      return "";
+    }
+
+    const content = fs.readFileSync(filePath, "utf-8");
+    return content.length > 1300 ? content.slice(0, 1300) : content;
+  } catch (error) {
+    console.error("getEntityContext error:", error);
+    return "";
+  }
+}

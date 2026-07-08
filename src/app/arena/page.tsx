@@ -15,11 +15,6 @@ interface DebateMessage {
   timestamp: string;
 }
 
-interface CoachMessage {
-  role: "coach" | "user";
-  content: string;
-  timestamp: string;
-}
 
 interface StatItem {
   label: string;
@@ -127,10 +122,9 @@ function ArenaContent() {
   const [isOpponentStreaming, setIsOpponentStreaming] = useState(false);
   const [currentOpponentTokenStream, setCurrentOpponentTokenStream] = useState("");
 
-  // Coach private log (Right Column)
-  const [coachChat, setCoachChat] = useState<CoachMessage[]>([
-    { role: "coach", content: "Locker room prepped. Awaiting strategy, coach finch is ready.", timestamp: "00:00" }
-  ]);
+  // Coach private state (Right Column - Research Assistant)
+  const [lastCoachQuestion, setLastCoachQuestion] = useState("");
+  const [lastCoachResponse, setLastCoachResponse] = useState("");
   const [currentCoachInput, setCurrentCoachInput] = useState("");
   const [isCoachStreaming, setIsCoachStreaming] = useState(false);
   const [currentCoachTokenStream, setCurrentCoachTokenStream] = useState("");
@@ -231,29 +225,19 @@ function ArenaContent() {
 
   useEffect(() => {
     coachEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [coachChat, currentCoachTokenStream]);
+  }, [lastCoachResponse, currentCoachTokenStream]);
 
   // Stage transition logic
   const handleStageTransition = () => {
     if (activeStep === "ROUND_1") {
       setActiveStep("TIMEOUT_1");
       setTimeLeft(STAGE_CONFIG.TIMEOUT_1.duration);
-      setCoachChat(prev => [...prev, {
-        role: "coach",
-        content: "TIMEOUT IN SESSION. We need to tweak the logic. Ask me anything to counter their arguments.",
-        timestamp: getMatchTimestamp()
-      }]);
     } else if (activeStep === "TIMEOUT_1") {
       setActiveStep("ROUND_2");
       setTimeLeft(STAGE_CONFIG.ROUND_2.duration);
     } else if (activeStep === "ROUND_2") {
       setActiveStep("TIMEOUT_2");
       setTimeLeft(STAGE_CONFIG.TIMEOUT_2.duration);
-      setCoachChat(prev => [...prev, {
-        role: "coach",
-        content: "TIMEOUT IN SESSION. This is the final stretch. How should we shape the closing rebuttals?",
-        timestamp: getMatchTimestamp()
-      }]);
     } else if (activeStep === "TIMEOUT_2") {
       setActiveStep("ROUND_3");
       setTimeLeft(STAGE_CONFIG.ROUND_3.duration);
@@ -369,44 +353,6 @@ function ArenaContent() {
     const rivalShift = Math.floor(Math.random() * 12) + 5;
     setRivalMomentum(prev => Math.min(95, prev + rivalShift));
     setUserMomentum(prev => Math.max(15, prev - Math.floor(rivalShift * 0.7)));
-
-    // Automatically trigger background coach updates for the next consult
-    fetchCoachFeedback(userText, historyPayload);
-  };
-
-  // Background Coach update triggers
-  const fetchCoachFeedback = async (userArg: string, historyPayload: { role: "user" | "assistant"; content: string }[]) => {
-    if (!data) return;
-    setIsCoachStreaming(true);
-    let coachOutput = "";
-    try {
-      const res = await fetch("/api/agent/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ side: data.teamName, rival: data.rival, argument: userArg, history: historyPayload })
-      });
-      if (!res.body) return;
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        const chunk = decoder.decode(value, { stream: !done });
-        coachOutput += chunk;
-        setCurrentCoachTokenStream(coachOutput);
-      }
-      setCoachChat(prev => [...prev, {
-        role: "coach",
-        content: coachOutput,
-        timestamp: getMatchTimestamp()
-      }]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsCoachStreaming(false);
-      setCurrentCoachTokenStream("");
-    }
   };
 
   // Custom private user ask to Tactical Coach
@@ -414,32 +360,17 @@ function ArenaContent() {
     if (!currentCoachInput.trim() || !data || isCoachStreaming) return;
     const questionText = currentCoachInput;
     setCurrentCoachInput("");
-
-    // Append user question to coach chat
-    setCoachChat(prev => [...prev, {
-      role: "user",
-      content: questionText,
-      timestamp: getMatchTimestamp()
-    }]);
-
-    // Format chat history for context
-    const historyPayload = debateFeed.map(f => ({
-      role: f.role === "user" ? "user" as const : "assistant" as const,
-      content: f.content
-    }));
+    setLastCoachQuestion(questionText);
+    setLastCoachResponse("");
 
     const coachReply = await streamReader(
       "/api/agent/coach",
-      { side: data.teamName, rival: data.rival, question: questionText, history: historyPayload },
+      { side: data.teamName, question: questionText },
       setCurrentCoachTokenStream,
       setIsCoachStreaming
     );
 
-    setCoachChat(prev => [...prev, {
-      role: "coach",
-      content: coachReply,
-      timestamp: getMatchTimestamp()
-    }]);
+    setLastCoachResponse(coachReply);
     setCurrentCoachTokenStream("");
   };
 
@@ -886,7 +817,7 @@ function ArenaContent() {
               <div>
                 <div className="flex justify-between items-start mb-4">
                   <span className="text-[9px] text-blue-400 font-bold uppercase tracking-widest font-display border border-blue-500/20 px-2.5 py-0.5 rounded-full bg-blue-950/20">
-                    TACTICAL COACH
+                    PRIVATE TACTICAL ASSISTANT
                   </span>
                   
                   <div className="flex items-center gap-1.5 text-[8px] font-bold text-green-400 font-display uppercase bg-green-950/20 border border-green-900/30 px-2 py-0.5 rounded-full">
@@ -903,64 +834,51 @@ function ArenaContent() {
                       COACH FINCH
                     </h3>
                     <span className="text-[9px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
-                      YOUR PRIVATE ADVISOR
+                      YOUR PRIVATE RESEARCH ASSISTANT
                     </span>
                   </div>
                 </div>
 
-                {/* Coach Private Message Board Feed */}
+                {/* Private Q&A message board container */}
                 <div className="border-t border-slate-900 pt-3 mb-4">
-                  <span className="text-[8px] text-slate-500 font-bold uppercase font-display block mb-1.5">
-                    COACH LOG CHANNEL
-                  </span>
-                  
-                  {/* Private chat window container */}
-                  <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 max-h-[220px] overflow-y-auto flex flex-col gap-3 font-sans">
-                    {coachChat.map((c, idx) => (
-                      <div key={idx} className="text-base">
-                        <span className={`font-bold block text-[8px] font-display mb-0.5 uppercase ${
-                          c.role === "coach" ? "text-blue-400" : "text-slate-400 text-right"
-                        }`}>
-                          {c.role === "coach" ? "COACH" : "YOU"} • {c.timestamp}
-                        </span>
-                        <p className={`font-normal leading-relaxed ${c.role === "user" && "text-right"}`}>{c.content}</p>
-                      </div>
-                    ))}
-                    
-                    {/* Streaming coach text token loader */}
-                    {isCoachStreaming && (
-                      <div className="text-base">
-                        <span className="font-bold block text-[8px] font-display text-blue-400 uppercase animate-pulse">
-                          COACH • UPDATING...
-                        </span>
-                        <p className="font-normal leading-relaxed text-slate-350">
-                          {currentCoachTokenStream || <Loader2 className="w-3 h-3 animate-spin text-blue-400 inline" />}
+                  <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 min-h-[220px] max-h-[300px] overflow-y-auto flex flex-col gap-3 font-sans relative">
+                    {!lastCoachQuestion && !isCoachStreaming && (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 opacity-40 select-none my-auto">
+                        <Users className="w-10 h-10 text-slate-500 mb-2" />
+                        <p className="text-[10px] font-display uppercase tracking-wider text-slate-400">
+                          Assistant ready.<br />Ask any football question about your team to get tactical insights.
                         </p>
+                      </div>
+                    )}
+                    
+                    {lastCoachQuestion && (
+                      <div className="text-base border-b border-slate-900 pb-2 mb-1">
+                        <span className="font-bold block text-[8px] font-display text-slate-400 uppercase mb-0.5">
+                          YOUR QUESTION
+                        </span>
+                        <p className="font-normal text-slate-200 leading-relaxed italic">&ldquo;{lastCoachQuestion}&rdquo;</p>
+                      </div>
+                    )}
+                    
+                    {(lastCoachResponse || currentCoachTokenStream) && (
+                      <div className="text-base flex-1">
+                        <span className="font-bold block text-[8px] font-display text-blue-450 uppercase mb-2">
+                          TACTICAL ASSISTANT RESPONSE
+                        </span>
+                        <div className="font-normal leading-relaxed text-slate-350 whitespace-pre-wrap select-text">
+                          {currentCoachTokenStream || lastCoachResponse}
+                        </div>
+                      </div>
+                    )}
+
+                    {isCoachStreaming && !currentCoachTokenStream && (
+                      <div className="flex items-center gap-2 text-xs text-blue-400 animate-pulse mt-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Analyzing source material...
                       </div>
                     )}
                     <div ref={coachEndRef} />
                   </div>
-                </div>
-
-                {/* suggested counters lists */}
-                <div className="mb-4">
-                  <span className="text-[8px] text-slate-500 font-bold uppercase font-display block mb-1.5">
-                    SUGGESTED TACTICAL FOCUS
-                  </span>
-                  <ul className="flex flex-col gap-1.5 bg-blue-950/10 border border-blue-900/10 rounded-lg p-3 text-base text-slate-300 font-normal">
-                    <li className="flex items-start gap-1.5">
-                      <span className="text-blue-400 font-bold">•</span>
-                      {sideId === "messi" ? "Highlight 8 Ballon d'Or record" : "Cite 140+ UEFA Champions League goals"}
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="text-blue-400 font-bold">•</span>
-                      {sideId === "messi" ? "Mention 380+ career assists playmaking" : "Highlight Euro 2016 Portugal champion trophy"}
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="text-blue-400 font-bold">•</span>
-                      {sideId === "messi" ? "Emphasize World Cup Golden Ball 2022" : "Quote 400+ goals scored since turning 30"}
-                    </li>
-                  </ul>
                 </div>
               </div>
 
@@ -1394,7 +1312,8 @@ function ArenaContent() {
               <button
                 onClick={() => {
                   setDebateFeed([]);
-                  setCoachChat([{ role: "coach", content: "Locker room prepped. Awaiting strategy, coach finch is ready.", timestamp: "00:00" }]);
+                  setLastCoachQuestion("");
+                  setLastCoachResponse("");
                   setCurrentUserInput("");
                   setCurrentCoachInput("");
                   setSelectedFactIds([]);

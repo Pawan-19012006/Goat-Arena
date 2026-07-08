@@ -1,76 +1,49 @@
 import { NextResponse } from "next/server";
-import { defaultModelProvider, DebateMessage } from "@/lib/qvac";
-import { getRetrievalContext } from "@/lib/retrieval";
+import { defaultModelProvider } from "@/lib/qvac";
+import { getEntityContext } from "@/lib/retrieval";
 
 /**
- * AI Tactical Coach Agent Route Handler.
- * Supports:
- * 1. Automatic round-based coaching (triggered by argument submissions).
- * 2. Real-time direct Q&A (triggered by typing into the Coach Panel input box).
+ * AI Tactical Coach Agent Route Handler refactored as a Private Research Assistant.
+ * Answers direct user questions using only the user's side of the debate.
  */
 export async function POST(request: Request) {
   try {
-    const { side, rival, argument, question, history } = await request.json() as {
+    const { side, question } = await request.json() as {
       side: string;
-      rival: string;
-      argument?: string;
-      question?: string;
-      history: DebateMessage[];
+      question: string;
     };
 
-    if (!side) {
-      return NextResponse.json({ error: "Missing required parameter: side" }, { status: 400 });
+    if (!side || !question) {
+      return NextResponse.json({ error: "Missing required parameters: side or question" }, { status: 400 });
     }
 
-    const queryText = question || argument || "";
-    // 1. Retrieve matching snippets from local Markdown knowledge base
-    const searchQuery = queryText.slice(0, 100);
-    const context = await getRetrievalContext(searchQuery, 3);
+    // 1. Retrieve the exact target side entity file (e.g. messi.md, argentina.md)
+    const context = await getEntityContext(side);
 
-    // 2. Map recent history (last 2 turns)
-    const recentHistory = history && history.length > 0 ? history.slice(-2) : [];
-    const formattedHistory = recentHistory.length > 0 
-      ? recentHistory.map(h => {
-          const shortVal = h.content.length > 80 ? h.content.slice(0, 80) + "..." : h.content;
-          return `${h.role === "user" ? "Client" : "Opponent"}: ${shortVal}`;
-        }).join("\n")
-      : "None yet.";
+    // 2. Compose specialised research prompt
+    const prompt = `You are a private football research assistant helping the user.
+Context (factual info about the entity):
+${context || "None"}
 
-    // 3. Customize instructions based on whether this is a direct question or round analysis
-    let instructions = "";
-    if (question) {
-      instructions = `Answer the client's direct question: "${question}".
-Use facts from the Context to construct your answer. Do not debate or criticise the client.`;
-    } else {
-      instructions = `Analyze the client's current input: "${argument}".
-Extract 1 key strength, 1 logical gap to defend, and 1 statistical recommendation.`;
-    }
+User's Question: "${question}"
 
-    // 4. Compose token-capped prompt
-    const prompt = `You are the AI Tactical Coach, a football analyst helping Team ${side.toUpperCase()} defeat ${rival?.toUpperCase() || "the opponent"}.
-Context: ${context || "None"}
-History:
-${formattedHistory}
+You MUST format your output strictly in this exact structure, including the headers in caps. Always use bullet points (•), and write a maximum of 6 bullets per section.
 
-${instructions}
-Never refuse normal football discussion. Keep your response supportive and extremely concise (max 120 words).
-You MUST format your output in this exact structure, including the headers in caps:
-
-FACTS
-- [supporting statistic or fact from Context]
+KEY FACTS
+• [bullet points here]
 
 ACHIEVEMENTS
-- [player career honors or accolades]
+• [bullet points here]
 
-COUNTERPOINTS
-- [rebuttals to challenge opponent arguments]
+COUNTERS
+• [bullet points here]
 
 TACTICAL ADVICE
-- [strategic advice for next rounds]`;
+• [bullet points here]`;
 
-    // Debug logs as requested
-    console.log("Prompt Length:", prompt.length);
-    console.log("Retrieved Context:", context);
+    // Debug logs
+    console.log("Coach Prompt Length:", prompt.length);
+    console.log("Coach Mapping Entity:", side);
 
     const encoder = new TextEncoder();
     const qvacStream = await defaultModelProvider.generateStream(prompt, []);
