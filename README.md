@@ -34,6 +34,20 @@ A Local-First Multi-Agent Football Fan Battlefield Powered Entirely by QVAC
 
 ---
 
+## 🎥 Demo Video
+
+<p align="center">
+  <a href="https://youtu.be/nv9e8LtHfP4">
+    <img src="https://img.youtube.com/vi/nv9e8LtHfP4/maxresdefault.jpg" width="900">
+  </a>
+</p>
+
+<p align="center">
+  <b>Click the image above to watch the full GOAT Arena demo</b>
+</p>
+
+---
+
 # 📖 Table of Contents
 
 - Executive Summary
