@@ -18,16 +18,28 @@ export async function POST(request: Request) {
     // 1. Retrieve the exact target rival entity file (e.g. ronaldo.md, brazil.md)
     const context = await getEntityContext(rival);
 
-    // 2. Format history and extract previous opponent arguments to prevent repetition
-    const usedArguments: string[] = [];
+    // 2. Format history and extract previous opponent topics to prevent repetition
+    const usedTopics: string[] = [];
     if (history) {
       const historyStr = history.map(h => h.content.toLowerCase()).join(" ");
-      if (historyStr.includes("champions") || historyStr.includes("ucl")) usedArguments.push("UCL/Champions League");
-      if (historyStr.includes("ballon")) usedArguments.push("Ballon d'Or honors");
-      if (historyStr.includes("world cup") || historyStr.includes("worldcup")) usedArguments.push("World Cup success");
-      if (historyStr.includes("goals") || historyStr.includes("scorer")) usedArguments.push("All-time goal totals");
-      if (historyStr.includes("assists") || historyStr.includes("playmaker")) usedArguments.push("Assists/Playmaking");
-      if (historyStr.includes("longevity") || historyStr.includes("age") || historyStr.includes("years old")) usedArguments.push("Career longevity");
+      if (historyStr.includes("world cup") || historyStr.includes("worldcup") || historyStr.includes("trophies")) {
+        usedTopics.push("world_cups");
+      }
+      if (historyStr.includes("recent") || historyStr.includes("form") || historyStr.includes("streak") || historyStr.includes("current")) {
+        usedTopics.push("recent_form");
+      }
+      if (historyStr.includes("defense") || historyStr.includes("defender") || historyStr.includes("backline")) {
+        usedTopics.push("defense");
+      }
+      if (historyStr.includes("squad") || historyStr.includes("depth") || historyStr.includes("bench")) {
+        usedTopics.push("squad_depth");
+      }
+      if (historyStr.includes("manager") || historyStr.includes("coach") || historyStr.includes("tactics")) {
+        usedTopics.push("manager");
+      }
+      if (historyStr.includes("star") || historyStr.includes("players") || historyStr.includes("ballon")) {
+        usedTopics.push("star_players");
+      }
     }
 
     const recentHistory = history && history.length > 0 ? history.slice(-3) : [];
@@ -38,11 +50,11 @@ export async function POST(request: Request) {
         }).join("\n")
       : "None yet.";
 
-    const repetitionGuard = usedArguments.length > 0
-      ? `DO NOT repeat or focus on these already used topics: ${usedArguments.join(", ")}. Pivot to a different statistics or trophy angle.`
-      : "Start with a strong competitive opening counterargument.";
+    const repetitionGuard = usedTopics.length > 0
+      ? `DO NOT discuss, repeat, or mention these topics: ${usedTopics.join(", ")}. Pivot to a different topic or statistic.`
+      : "Rebut the user directly.";
 
-    // 3. Compose specialised Opponent prompt
+    // 3. Compose specialised Opponent prompt with 15-40 words constraint
     const prompt = `You are a competitive supporter of TEAM ${rival.toUpperCase()} vs ${side.toUpperCase()}.
 Context (factual info about your team):
 ${context || "None"}
@@ -53,15 +65,16 @@ User says: "${argument}"
 
 ${repetitionGuard}
 
-Write a sharp rebuttal. Be competitive and aggressive.
-CRITICAL LIMITATIONS:
-- Keep your response strictly between 20 and 60 words.
-- Attack only one argument at a time.
+Write a sharp, competitive rebuttal.
+CRITICAL CONSTRAINTS:
+- Keep your response strictly between 15 and 40 words.
+- Attack only one User argument at a time.
 - Output exactly ONE single concise paragraph. Do NOT write multiple paragraphs, headers, or bullet points.`;
 
     // Debug logs
     console.log("Opponent Prompt Length:", prompt.length);
     console.log("Opponent Mapping Entity:", rival);
+    console.log("Opponent Used Topics Memory:", usedTopics);
 
     // 4. Generate stream
     const encoder = new TextEncoder();

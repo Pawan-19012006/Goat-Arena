@@ -235,12 +235,16 @@ function ArenaContent() {
     } else if (activeStep === "TIMEOUT_1") {
       setActiveStep("ROUND_2");
       setTimeLeft(STAGE_CONFIG.ROUND_2.duration);
+      setLastCoachQuestion("");
+      setLastCoachResponse("");
     } else if (activeStep === "ROUND_2") {
       setActiveStep("TIMEOUT_2");
       setTimeLeft(STAGE_CONFIG.TIMEOUT_2.duration);
     } else if (activeStep === "TIMEOUT_2") {
       setActiveStep("ROUND_3");
       setTimeLeft(STAGE_CONFIG.ROUND_3.duration);
+      setLastCoachQuestion("");
+      setLastCoachResponse("");
     } else if (activeStep === "ROUND_3") {
       setIsTimerActive(false);
       handleTriggerReferee();
@@ -807,112 +811,124 @@ function ArenaContent() {
 
         {/* RIGHT COLUMN: TACTICAL COACH (lg:col-span-3) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-blue-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40">
-            {/* Blue border top highlight */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500/50" />
-            
-            {/* Coach detail */}
-            <div className="flex-1 flex flex-col justify-between relative z-10">
+          {activeStep === "TIMEOUT_1" || activeStep === "TIMEOUT_2" ? (
+            <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-blue-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40 animate-fade-in">
+              {/* Blue border top highlight */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500/50" />
               
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-[9px] text-blue-400 font-bold uppercase tracking-widest font-display border border-blue-500/20 px-2.5 py-0.5 rounded-full bg-blue-950/20">
-                    PRIVATE TACTICAL ASSISTANT
-                  </span>
-                  
-                  <div className="flex items-center gap-1.5 text-[8px] font-bold text-green-400 font-display uppercase bg-green-950/20 border border-green-900/30 px-2 py-0.5 rounded-full">
-                    <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
-                    ONLINE
-                  </div>
-                </div>
-
-                {/* Coach card profile */}
-                <div className="flex items-center gap-3 mb-4">
-                  <AvatarIcon type="coach" size={12} />
-                  <div>
-                    <h3 className="text-sm font-black text-white font-display uppercase tracking-wider leading-none">
-                      COACH FINCH
-                    </h3>
-                    <span className="text-[9px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
-                      YOUR PRIVATE RESEARCH ASSISTANT
-                    </span>
-                  </div>
-                </div>
-
-                {/* Private Q&A message board container */}
-                <div className="border-t border-slate-900 pt-3 mb-4">
-                  <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 min-h-[220px] max-h-[300px] overflow-y-auto flex flex-col gap-3 font-sans relative">
-                    {!lastCoachQuestion && !isCoachStreaming && (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 opacity-40 select-none my-auto">
-                        <Users className="w-10 h-10 text-slate-500 mb-2" />
-                        <p className="text-[10px] font-display uppercase tracking-wider text-slate-400">
-                          Assistant ready.<br />Ask any football question about your team to get tactical insights.
-                        </p>
-                      </div>
-                    )}
-                    
-                    {lastCoachQuestion && (
-                      <div className="text-base border-b border-slate-900 pb-2 mb-1">
-                        <span className="font-bold block text-[8px] font-display text-slate-400 uppercase mb-0.5">
-                          YOUR QUESTION
-                        </span>
-                        <p className="font-normal text-slate-200 leading-relaxed italic">&ldquo;{lastCoachQuestion}&rdquo;</p>
-                      </div>
-                    )}
-                    
-                    {(lastCoachResponse || currentCoachTokenStream) && (
-                      <div className="text-base flex-1">
-                        <span className="font-bold block text-[8px] font-display text-blue-450 uppercase mb-2">
-                          TACTICAL ASSISTANT RESPONSE
-                        </span>
-                        <div className="font-normal leading-relaxed text-slate-350 whitespace-pre-wrap select-text">
-                          {currentCoachTokenStream || lastCoachResponse}
-                        </div>
-                      </div>
-                    )}
-
-                    {isCoachStreaming && !currentCoachTokenStream && (
-                      <div className="flex items-center gap-2 text-xs text-blue-400 animate-pulse mt-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Analyzing source material...
-                      </div>
-                    )}
-                    <div ref={coachEndRef} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Private Q&A Ask Box */}
-              <div className="border-t border-slate-900 pt-3 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={currentCoachInput}
-                  onChange={(e) => setCurrentCoachInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && currentCoachInput.trim().length >= 4) {
-                      handleAskCoach();
-                    }
-                  }}
-                  disabled={isCoachStreaming || isOpponentStreaming}
-                  placeholder="Ask Coach anything..."
-                  className="flex-1 bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-[11px] text-slate-100 placeholder:text-slate-650 focus:outline-none focus:border-blue-500/80 transition-all font-sans"
-                />
+              {/* Coach detail */}
+              <div className="flex-1 flex flex-col justify-between relative z-10">
                 
-                <button
-                  onClick={handleAskCoach}
-                  disabled={currentCoachInput.trim().length < 4 || isCoachStreaming || isOpponentStreaming}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                    currentCoachInput.trim().length >= 4 && !isCoachStreaming && !isOpponentStreaming
-                      ? "bg-blue-600 text-white hover:bg-blue-500"
-                      : "bg-slate-900 text-slate-650 border border-slate-850"
-                  }`}
-                >
-                  <Send className="w-3 h-3" />
-                </button>
-              </div>
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[9px] text-blue-400 font-bold uppercase tracking-widest font-display border border-blue-500/20 px-2.5 py-0.5 rounded-full bg-blue-950/20">
+                      PRIVATE TACTICAL ASSISTANT
+                    </span>
+                    
+                    <div className="flex items-center gap-1.5 text-[8px] font-bold text-green-400 font-display uppercase bg-green-950/20 border border-green-900/30 px-2 py-0.5 rounded-full">
+                      <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
+                      ONLINE
+                    </div>
+                  </div>
 
+                  {/* Coach card profile */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <AvatarIcon type="coach" size={12} />
+                    <div>
+                      <h3 className="text-sm font-black text-white font-display uppercase tracking-wider leading-none">
+                        COACH FINCH
+                      </h3>
+                      <span className="text-[9px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
+                        YOUR PRIVATE RESEARCH ASSISTANT
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Private Q&A message board container */}
+                  <div className="border-t border-slate-900 pt-3 mb-4">
+                    <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 min-h-[220px] max-h-[300px] overflow-y-auto flex flex-col gap-3 font-sans relative">
+                      {!lastCoachQuestion && !isCoachStreaming && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 opacity-40 select-none my-auto">
+                          <Users className="w-10 h-10 text-slate-500 mb-2" />
+                          <p className="text-[10px] font-display uppercase tracking-wider text-slate-400">
+                            Assistant ready.<br />Ask any football question about your team to get tactical insights.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {lastCoachQuestion && (
+                        <div className="text-base border-b border-slate-900 pb-2 mb-1">
+                          <span className="font-bold block text-[8px] font-display text-slate-400 uppercase mb-0.5">
+                            YOUR QUESTION
+                          </span>
+                          <p className="font-normal text-slate-200 leading-relaxed italic">&ldquo;{lastCoachQuestion}&rdquo;</p>
+                        </div>
+                      )}
+                      
+                      {(lastCoachResponse || currentCoachTokenStream) && (
+                        <div className="text-base flex-1">
+                          <span className="font-bold block text-[8px] font-display text-blue-450 uppercase mb-2">
+                            TACTICAL ASSISTANT RESPONSE
+                          </span>
+                          <div className="font-normal leading-relaxed text-slate-350 whitespace-pre-wrap select-text">
+                            {currentCoachTokenStream || lastCoachResponse}
+                          </div>
+                        </div>
+                      )}
+
+                      {isCoachStreaming && !currentCoachTokenStream && (
+                        <div className="flex items-center gap-2 text-xs text-blue-400 animate-pulse mt-2">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Analyzing source material...
+                        </div>
+                      )}
+                      <div ref={coachEndRef} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Private Q&A Ask Box */}
+                <div className="border-t border-slate-900 pt-3 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={currentCoachInput}
+                    onChange={(e) => setCurrentCoachInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && currentCoachInput.trim().length >= 4) {
+                        handleAskCoach();
+                      }
+                    }}
+                    disabled={isCoachStreaming || isOpponentStreaming}
+                    placeholder="Ask Coach anything..."
+                    className="flex-1 bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-[11px] text-slate-100 placeholder:text-slate-650 focus:outline-none focus:border-blue-500/80 transition-all font-sans"
+                  />
+                  
+                  <button
+                    onClick={handleAskCoach}
+                    disabled={currentCoachInput.trim().length < 4 || isCoachStreaming || isOpponentStreaming}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                      currentCoachInput.trim().length >= 4 && !isCoachStreaming && !isOpponentStreaming
+                        ? "bg-blue-600 text-white hover:bg-blue-500"
+                        : "bg-slate-900 text-slate-650 border border-slate-850"
+                    }`}
+                  >
+                    <Send className="w-3 h-3" />
+                  </button>
+                </div>
+
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-950/70 flex flex-col items-center justify-center text-center opacity-40 select-none shadow-lg shadow-black/40">
+              <Shield className="w-12 h-12 text-slate-600 mb-3 animate-pulse" />
+              <span className="text-xs font-display font-bold uppercase tracking-widest text-slate-500">
+                COACH PANEL LOCKED
+              </span>
+              <p className="text-[10px] text-slate-550 font-sans mt-2 max-w-[180px] leading-relaxed">
+                Coach Finch is only available during Strategic Timeouts. Focus on the live debate feed.
+              </p>
+            </div>
+          )}
         </div>
 
       </div>

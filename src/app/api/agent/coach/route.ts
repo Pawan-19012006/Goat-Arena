@@ -3,8 +3,8 @@ import { defaultModelProvider } from "@/lib/qvac";
 import { getEntityContext } from "@/lib/retrieval";
 
 /**
- * AI Tactical Coach Agent Route Handler refactored as a Private Research Assistant.
- * Answers direct user questions using only the user's side of the debate.
+ * AI Tactical Coach Agent Route Handler refactored as a Private Timeout Advisor.
+ * Returns exactly 1-2 sentences of strategic advice based on the user's side.
  */
 export async function POST(request: Request) {
   try {
@@ -20,26 +20,14 @@ export async function POST(request: Request) {
     // 1. Retrieve the exact target side entity file (e.g. messi.md, argentina.md)
     const context = await getEntityContext(side);
 
-    // 2. Compose specialised research prompt
-    const prompt = `You are a private football research assistant helping the user.
-Context (factual info about the entity):
+    // 2. Compose specialised strategic advice prompt
+    const prompt = `You are a private tactical football coach advising your client on the Team ${side.toUpperCase()} side.
+Context (factual info about your team):
 ${context || "None"}
 
 User's Question: "${question}"
 
-You MUST format your output strictly in this exact structure, including the headers in caps. Always use bullet points (•), and write a maximum of 6 bullets per section.
-
-KEY FACTS
-• [bullet points here]
-
-ACHIEVEMENTS
-• [bullet points here]
-
-COUNTERS
-• [bullet points here]
-
-TACTICAL ADVICE
-• [bullet points here]`;
+Write exactly 1 or 2 short sentences of strategic guidance. Do NOT write bullet points, list items, statistics, or full arguments that can be copied. Guide the user on what angle/statistic to focus on or avoid. Keep it extremely brief.`;
 
     // Debug logs
     console.log("Coach Prompt Length:", prompt.length);
