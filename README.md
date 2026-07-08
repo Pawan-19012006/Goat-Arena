@@ -1,26 +1,26 @@
-<p align="center">
-  <img src="public/images/logo.png" width="220">
-</p>
+<div align="center">
 
-<h1 align="center">⚽ GOAT Arena</h1>
+<img src="./public/images/logo.png" width="350" alt="GOAT Arena Logo" />
 
-<h3 align="center">
-Defend Your Legend. Challenge the Rival. Conquer the Arena.
-</h3>
+# ⚽ GOAT Arena
 
-<p align="center">
-A Local-First Multi-Agent Football Fan Battlefield Powered Entirely by QVAC
-</p>
+### Defend Your Legend. Challenge the Rival. Conquer the Arena.
 
-<p align="center">
+*A Local-First Multi-Agent Football Fan Battlefield Powered Entirely by QVAC*
 
-![QVAC](https://img.shields.io/badge/QVAC-Local%20AI-purple?style=for-the-badge)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge)
-![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Hackathon](https://img.shields.io/badge/QVAC%20x%20Tether-Hackathon-orange?style=for-the-badge)
+<br>
 
-</p>
+<a href="https://github.com/tetherto/qvac">
+  <img src="https://raw.githubusercontent.com/tetherto/qvac/refs/heads/main/docs/branding/qvac-badge-green-dark.svg" alt="Built with QVAC">
+</a>
+
+<img src="https://img.shields.io/badge/Local%20AI-On--Device-purple" alt="Local AI">
+<img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
+<img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript">
+<img src="https://img.shields.io/badge/License-MIT-green" alt="MIT">
+<img src="https://img.shields.io/badge/QVAC%20x%20Tether-Hackathon-orange" alt="Hackathon">
+
+</div>
 
 ---
 
@@ -38,15 +38,13 @@ A Local-First Multi-Agent Football Fan Battlefield Powered Entirely by QVAC
 
 <p align="center">
   <a href="https://youtu.be/nv9e8LtHfP4">
-    <img src="https://img.youtube.com/vi/nv9e8LtHfP4/maxresdefault.jpg" width="900">
+    <img src="https://img.youtube.com/vi/nv9e8LtHfP4/maxresdefault.jpg" width="900" alt="GOAT Arena Demo">
   </a>
 </p>
 
 <p align="center">
-  <b>Click the image above to watch the full GOAT Arena demo</b>
+  <b>Click the image above to watch the full demo</b>
 </p>
-
----
 
 # 📖 Table of Contents
 
@@ -58,7 +56,6 @@ A Local-First Multi-Agent Football Fan Battlefield Powered Entirely by QVAC
 - Arena Modes
 - System Architecture
 - Screenshots
-- Demo Video
 - Local Setup
 - Technical Stack
 - Future Roadmap
@@ -230,28 +227,6 @@ Evaluates:
 
 Generates structured match verdicts.
 
----
-
-# 🤖 Meet The Agents
-
-[Add screenshots of each agent panel here]
-
-...
-
-# 🏟️ Arena Modes
-
-## Messi vs Ronaldo
-
-...
-
-## Mbappé vs Haaland
-
-...
-
-## Argentina vs Brazil
-
-...
-
 # 🏗️ System Architecture
 
 ```mermaid
@@ -287,34 +262,6 @@ knowledge/
 ```
 
 Section-based retrieval keeps prompts small and efficient for local inference.
-
----
-
-# 📸 Screenshots
-
-## Arena Selection
-
-[IMAGE]
-
-## Live Battle
-
-[IMAGE]
-
-## Strategic Timeout
-
-[IMAGE]
-
-## Final Verdict
-
-[IMAGE]
-
----
-
-# 🎥 Demo Video
-
-YouTube Demo:
-
-[INSERT YOUTUBE LINK]
 
 ---
 
