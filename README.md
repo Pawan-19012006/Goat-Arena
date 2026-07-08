@@ -304,32 +304,65 @@ YouTube Demo:
 
 ---
 
-# 🛠️ Local Setup
+# 🚀 Setup Instructions
 
-## Requirements
+## Prerequisites
 
-- Node.js 18+
-- npm
-- QVAC Runtime
-- Supported Local Model
+- Node.js 22.x
+- npm 10.x
 
-## Installation
+---
+
+## 1. Install QVAC
+
+Install the QVAC CLI:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/goat-arena.git
+npm install -g @qvac/cli
+```
 
-cd goat-arena
+Verify installation:
 
+```bash
+qvac --version
+```
+
+---
+
+## 2. Download the Required Model
+
+```bash
+qvac models pull llama-3.2-1b-instruct
+```
+
+Verify the model is available:
+
+```bash
+qvac models list
+```
+
+You should see the downloaded model in the output.
+
+---
+
+## 3. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd Goat-Arena
+```
+
+---
+
+## 4. Install Project Dependencies
+
+```bash
 npm install
 ```
 
-## Configure Environment
+---
 
-```env
-QVAC_MODEL_ID=YOUR_MODEL_ID
-```
-
-## Run
+## 5. Start the Application
 
 ```bash
 npm run dev
@@ -343,22 +376,23 @@ http://localhost:3000
 
 ---
 
-# 🧪 Reproducibility
+## Tested Environment
 
-For best reproducibility:
+- Node.js 22.17.0
+- npm 10.x
+- QVAC SDK 0.14.1
+- macOS Sequoia
 
-Use the same model used during development.
+---
 
-Recommended:
+## Verification
 
-```text
-LLAMA_3_2_1B_INST_Q4_0
-```
+After startup:
 
-Because LLM generation is probabilistic, exact wording may vary.
-
-Core functionality remains identical.
-
+✅ Model loads successfully  
+✅ Rival Legend generates responses  
+✅ Coach Finch provides coaching  
+✅ Arena Referee produces scoring and verdicts
 ---
 
 # 🗺️ Future Roadmap
