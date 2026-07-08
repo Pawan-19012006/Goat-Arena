@@ -1,52 +1,40 @@
-# GOAT Arena gameplay & State Operations (Phase 3.7)
+# GOAT Arena gameplay & State Operations (Phase 3.9)
 
-This document explains the input validation, deterministic lookup bypass, query-routing layer, strategic coach intent responses, opponent structured rebuttals, and topic repetition memory.
-
----
-
-## 🔎 Segmented Knowledge Profiles & Query Routing
-
-To prevent the AI from receiving irrelevant or oversized context, the database is divided into segmented subheaders and matched using keyword query-routing:
-
-### 1. Database Subheaders (`knowledge/`)
-Each profile file contains exactly these 13 sections:
-- `# Origins`
-- `# History`
-- `# Country`
-- `# Club Career`
-- `# Records`
-- `# Achievements`
-- `# Managers`
-- `# Major Tournaments`
-- `# Recent Form`
-- `# Strengths`
-- `# Weaknesses`
-- `# Debate Points`
-- `# Counter Points`
-
-### 2. Multi-Section Retrieval Layer (`src/lib/retrieval.ts`)
-The helper `getEntityMultiSectionContext(entityName, sections)` extracts and merges multiple markdown segments matching the `# ` headers.
+This document explains the input validation, deterministic lookup bypass, query-routing layer, strategic coach intent responses, opponent structured rebuttals, layout stability rules, side assignment audit, and response validations.
 
 ---
 
-## 🎓 Tactical Coach Query Routing
+## 🖥️ Layout Stability & Viewport Height Lock
 
-### 1. Deterministic Facts Lookup
-For questions regarding `country`, `age`, `club`, `goals`, `trophies`, `world cups`, `ballon d'or counts`, `managers`, and `history`, the endpoint immediately answers directly from a structured mapping list. It bypasses AI model execution completely, guaranteeing zero hallucination.
-
-### 2. Intent-based Routing & Prompts
-For non-deterministic questions, the coach routes the query to one of the templates based on detected intent (`FACT`, `HISTORY`, `ACHIEVEMENT`, `SUPPORT_POINTS`, `COUNTER_ARGUMENT`, `WEAKNESSES`, `TACTICAL_ADVICE`), limiting output to 1-3 sentences or 3-4 bullets.
+The application is structured to mimic an esports console dashboard, ensuring layout coordinates remain static across stages:
+1. **Container Constraint**: The root viewport wrapper is set to exactly `h-screen max-h-screen overflow-hidden flex flex-col`.
+2. **Scrolling Containment**: Global page scrolling is disabled. Scroll zones are isolated to internal panels:
+   - Live debate feed transcript
+   - Timeout coach Research assistant logs
+   - Post-game overlay panels
+   All panels use `overflow-y-auto min-h-0 flex-1 flex flex-col` CSS properties.
 
 ---
 
-## 🥊 AI Opponent Rebuttals & Validation
+## 🛡️ Opponent Side Assignment Audit & Stance Card
 
-### 1. Non-Argument Validation
-If the user inputs a short statement, greeting, or filler (e.g. "hello", "hi", "ok"), the Opponent bypasses standard rebuttals and prompts the user to state their case in character.
+To prevent the AI Opponent from praising or defending the user's side, we enforce strict client-side alignment and server-side checkpoints:
+1. **Rival Metadata JSON Preloading**: The client resolves `opponentSideId` based on the selected clash type and preloads both `/data/${sideId}.json` and `/data/${opponentSideId}.json`.
+2. **Dynamic Stance Binding**: The Left Column Stance Panel dynamically maps badge profiles, stance paragraphs (`getStanceDescription()`), and Key Rival Assets bullets directly from the loaded `opponentData` stats rather than hardcoding Messi vs Ronaldo.
+3. **Strict Route Prompts**: The opponent endpoint is sent explicit guidelines:
+   `You are defending TEAM {opponentSide}. Never support {userSide}. Never praise {userSide}. Always argue from the perspective of {opponentSide}.`
+4. **Self-Validation Regeneration Loop**: On every rebuttal generation, the server checks the generated string for patterns of user-side praise or self-deprecation. If caught, it rejects and regenerates (up to 3 times) before falling back to a deterministic, high-scoring profile statement.
+5. **Auditing Console Logs**: Console prints detail `userSide`, `opponentSide`, `loadedContextFile`, and `loadedEntity` before model generation.
 
-### 2. Anti-Leakage Constraints
-The Opponent prompt explicitly bans using metalanguage structures such as: "User's claim", "User", "Claim", "Rebuttal", "Debate structure", "Acknowledge the point", "Counter", and "Conclusion".
+---
 
-### 3. Rebuttal constraints
-- Limits length strictly to **15-50 words** in exactly one paragraph.
-- Matches user topics against topic repetition memory to ensure argument diversity.
+## 🏆 Explainable Sports Analyst Referee Verdict
+
+The final winner screen is structured as an esports analytics sheet divided into 7 zones:
+- **SECTION 1: Winner Panel**: Winner Name, Final Scores.
+- **SECTION 2: Turning Point**: Qualitative review of the match momentum pivot.
+- **SECTION 3: Best User Argument**: Quote from user, category tag, score impact (e.g. `+9 Evidence, +7 Persuasion`).
+- **SECTION 4: Best Opponent Argument**: Quote from opponent, category tag, score impact.
+- **SECTION 5: Weakest User Argument**: Quote, reasoning for weakness.
+- **SECTION 6: Weakest Opponent Argument**: Quote, reasoning for weakness.
+- **SECTION 7: Score Breakdown**: Interactive visual progress bars matching qualitative category summaries for Evidence, Logic, Relevance, and Persuasion.

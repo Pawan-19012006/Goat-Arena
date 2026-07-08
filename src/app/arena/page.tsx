@@ -49,6 +49,17 @@ interface RefereeVerdict {
   counteringScore: number;
   overallScore: number;
   verdict: string;
+  turningPoint: string;
+  bestUserArg: { quote: string; category: string; impact: string };
+  bestOpponentArg: { quote: string; category: string; impact: string };
+  weakestUserArg: { quote: string; reason: string };
+  weakestOpponentArg: { quote: string; reason: string };
+  categoryBreakdown: {
+    evidence: string;
+    logic: string;
+    relevance: string;
+    persuasion: string;
+  };
 }
 
 type ArenaStep = 
@@ -107,9 +118,40 @@ function ArenaContent() {
   const searchParams = useSearchParams();
   const sideId = searchParams.get("side") || "messi";
 
+  const opponentSideId =
+    sideId === "messi" ? "ronaldo" :
+    sideId === "ronaldo" ? "messi" :
+    sideId === "mbappe" ? "haaland" :
+    sideId === "haaland" ? "mbappe" :
+    sideId === "argentina" ? "brazil" :
+    sideId === "brazil" ? "argentina" : "";
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PlayerData | null>(null);
+  const [opponentData, setOpponentData] = useState<PlayerData | null>(null);
+
+  const getStanceDescription = () => {
+    if (opponentSideId === "ronaldo") {
+      return "Defending Cristiano Ronaldo's record scoring volume, international goal dominance, and physical/athletic longevity.";
+    }
+    if (opponentSideId === "messi") {
+      return "Defending Lionel Messi's all-time playmaking assist statistics, calendar year output, and 2022 World Cup glory.";
+    }
+    if (opponentSideId === "mbappe") {
+      return "Defending Kylian Mbappé's explosive speed, World Cup final hat-trick dominance, and clinical goal scoring threat.";
+    }
+    if (opponentSideId === "haaland") {
+      return "Defending Erling Haaland's cyborg goal-scoring rate, single-season Premier League records, and treble achievement.";
+    }
+    if (opponentSideId === "argentina") {
+      return "Defending Argentina's reigning World Cup champion status, back-to-back Copa América dominance, and FIFA #1 rank.";
+    }
+    if (opponentSideId === "brazil") {
+      return "Defending Brazil's historic 5 World Cups, legacy of legendary superstars, and unmatched football heritage.";
+    }
+    return "Defending the rival's records and competitive achievements.";
+  };
   
   // Game Flow State
   const [activeStep, setActiveStep] = useState<ArenaStep>("ARSENAL");
@@ -188,12 +230,22 @@ function ArenaContent() {
     async function loadData() {
       try {
         setLoading(true);
+        // Load user side data
         const response = await fetch(`/data/${sideId}.json`);
         if (!response.ok) {
           throw new Error(`Failed to load data for: ${sideId}`);
         }
         const json = await response.json();
         setData(json);
+
+        // Load opponent side data
+        if (opponentSideId) {
+          const oppResponse = await fetch(`/data/${opponentSideId}.json`);
+          if (oppResponse.ok) {
+            const oppJson = await oppResponse.json();
+            setOpponentData(oppJson);
+          }
+        }
       } catch (err: unknown) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Error loading data.");
@@ -217,7 +269,7 @@ function ArenaContent() {
     return () => {
       fetch("/api/model/control?action=unload").catch(console.error);
     };
-  }, [sideId]);
+  }, [sideId, opponentSideId]);
 
   // Handle stage ticking clock
   useEffect(() => {
@@ -535,10 +587,16 @@ function ArenaContent() {
       });
 
       if (!res.ok) throw new Error("Referee grading failed.");
-      const explainData = await res.json() as { verdict: string };
+      const explainData = await res.json() as {
+        turningPoint: string;
+        bestUserArg: { quote: string; category: string; impact: string };
+        bestOpponentArg: { quote: string; category: string; impact: string };
+        weakestUserArg: { quote: string; reason: string };
+        weakestOpponentArg: { quote: string; reason: string };
+        categoryBreakdown: { evidence: string; logic: string; relevance: string; persuasion: string };
+      };
 
       // Map accumulated metrics to the final 0-100 scoreboard
-      // Denominator count is max of 1 and scoredExchangesCount
       const count = Math.max(1, scoredExchangesCount);
       const evidenceScore = Math.round((runningScores.sideA.evidence / (count * 10)) * 100);
       const logicScore = Math.round((runningScores.sideA.logic / (count * 10)) * 100);
@@ -554,8 +612,15 @@ function ArenaContent() {
         persuasionScore,
         counteringScore,
         overallScore,
-        verdict: explainData.verdict
+        verdict: "Outcome compiled.",
+        turningPoint: explainData.turningPoint,
+        bestUserArg: explainData.bestUserArg,
+        bestOpponentArg: explainData.bestOpponentArg,
+        weakestUserArg: explainData.weakestUserArg,
+        weakestOpponentArg: explainData.weakestOpponentArg,
+        categoryBreakdown: explainData.categoryBreakdown
       });
+      setActiveStep("WINNER");
 
       const pLen = res.headers.get("x-prompt-length");
       setDebugStats(prev => ({
@@ -608,7 +673,7 @@ function ArenaContent() {
   const roundLabel = roundConfig ? roundConfig.label : "REFEREE EVALUATION";
 
   return (
-    <div className="flex-1 flex flex-col w-full px-4 py-4 relative select-none">
+    <div className="h-screen max-h-screen overflow-hidden flex flex-col w-full px-4 py-4 relative select-none bg-slate-950 text-white">
       
       {/* 1. Header HUD matched to valorant esports broadcast */}
       <header className="w-full grid grid-cols-12 items-center border border-slate-900 bg-slate-950/95 backdrop-blur rounded-xl p-3 mb-4 relative overflow-hidden shadow-inner">
@@ -694,11 +759,11 @@ function ArenaContent() {
       </header>
 
       {/* 2. Responsive 3-Column layout dashboard */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch min-h-[580px]">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch min-h-0 overflow-hidden">
         
         {/* LEFT COLUMN: RIVAL LEGEND CARD (lg:col-span-2) */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-red-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40">
+        <div className="lg:col-span-2 flex flex-col gap-4 overflow-y-auto pr-1 min-h-0 scrollbar-thin">
+          <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-red-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40 min-h-0">
             {/* Red border top highlight */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-red-600/50" />
             
@@ -713,10 +778,10 @@ function ArenaContent() {
 
               {/* Mock Avatar placeholder (visual silhouette) */}
               <div className="flex items-center gap-3 mb-6">
-                <AvatarIcon type={sideId === "messi" ? "ronaldo" : "messi"} size={12} />
+                <AvatarIcon type={opponentSideId} size={12} />
                 <div>
                   <h3 className="text-lg font-black text-white font-display uppercase tracking-wider leading-none">
-                    {data.rival}
+                    {opponentData?.name || data.rival}
                   </h3>
                   <span className="text-xs text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
                     THE TARGET
@@ -730,10 +795,7 @@ function ArenaContent() {
                   CURRENT STANCE
                 </span>
                 <p className="text-base text-slate-350 leading-relaxed font-normal font-sans bg-slate-950/80 border border-slate-900 rounded-lg p-3">
-                  {sideId === "messi"
-                    ? "Defending Cristiano Ronaldo's record scoring volume, international goal dominance, and physical/athletic longevity."
-                    : "Defending Lionel Messi's all-time playmaking assist statistics, calendar year output, and 2022 World Cup glory."
-                  }
+                  {getStanceDescription()}
                 </p>
               </div>
 
@@ -743,18 +805,21 @@ function ArenaContent() {
                   KEY RIVAL ASSETS
                 </span>
                 <ul className="flex flex-col gap-2">
-                  <li className="text-base text-slate-300 font-normal flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    {sideId === "messi" ? "All-time Professional Scorer (900+)" : "Most Ballon d'Ors in history (8)"}
-                  </li>
-                  <li className="text-base text-slate-300 font-normal flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    {sideId === "messi" ? "UEFA Champions League top scorer" : "World Cup 2022 Golden Ball Champion"}
-                  </li>
-                  <li className="text-base text-slate-300 font-normal flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    {sideId === "messi" ? "All-time Euro Cup Top Scorer" : "Highest modern calendar year goals (91)"}
-                  </li>
+                  {opponentData?.stats ? (
+                    opponentData.stats.slice(0, 3).map((stat, i) => (
+                      <li key={i} className="text-base text-slate-300 font-normal flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mt-2" />
+                        <span className="leading-tight">
+                          <span className="font-bold text-slate-200">{stat.label}</span>: {stat.value}
+                        </span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-base text-slate-350 font-normal flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                      Loading stats...
+                    </li>
+                  )}
                 </ul>
               </div>
             </div>
@@ -795,8 +860,8 @@ function ArenaContent() {
         </div>
 
         {/* CENTER COLUMN: LIVE DEBATE FEED (lg:col-span-7) */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
-          <div className="flex-1 glass-panel-heavy rounded-xl p-5 border border-slate-800 bg-slate-950/50 flex flex-col relative overflow-hidden shadow-inner">
+        <div className="lg:col-span-7 flex flex-col gap-4 min-h-0 overflow-hidden">
+          <div className="flex-1 glass-panel-heavy rounded-xl p-5 border border-slate-800 bg-slate-950/50 flex flex-col relative overflow-hidden shadow-inner min-h-0">
             
             {/* Header Feed Display */}
             <div className="flex justify-between items-center border-b border-slate-900 pb-3 mb-4 relative z-10">
@@ -831,7 +896,7 @@ function ArenaContent() {
                       className={`flex gap-3 max-w-[85%] ${isUser ? "self-end flex-row-reverse" : "self-start flex-row"}`}
                     >
                       <div className="shrink-0 mt-1">
-                        <AvatarIcon type={isUser ? sideId : (sideId === "messi" ? "ronaldo" : "messi")} size={8} />
+                        <AvatarIcon type={isUser ? sideId : opponentSideId} size={8} />
                       </div>
                       
                       <div className="flex flex-col">
@@ -864,7 +929,7 @@ function ArenaContent() {
               {isOpponentStreaming && (
                 <div className="flex gap-3 max-w-[85%] self-start flex-row">
                   <div className="shrink-0 mt-1">
-                    <AvatarIcon type={sideId === "messi" ? "ronaldo" : "messi"} size={8} />
+                    <AvatarIcon type={opponentSideId} size={8} />
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2 mb-1 text-[8px] text-red-400 font-bold uppercase font-display animate-pulse">
@@ -971,9 +1036,9 @@ function ArenaContent() {
         </div>
 
         {/* RIGHT COLUMN: TACTICAL COACH (lg:col-span-3) */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
+        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0 overflow-hidden">
           {activeStep === "TIMEOUT_1" || activeStep === "TIMEOUT_2" ? (
-            <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-blue-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40 animate-fade-in">
+            <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-blue-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40 animate-fade-in min-h-0">
               {/* Blue border top highlight */}
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500/50" />
               
@@ -1006,8 +1071,8 @@ function ArenaContent() {
                   </div>
 
                   {/* Private Q&A message board container */}
-                  <div className="border-t border-slate-900 pt-3 mb-4">
-                    <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 min-h-[220px] max-h-[300px] overflow-y-auto flex flex-col gap-3 font-sans relative">
+                  <div className="border-t border-slate-900 pt-3 mb-4 flex-1 flex flex-col min-h-0">
+                    <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3.5 overflow-y-auto flex flex-col gap-3 font-sans relative flex-1 min-h-0">
                       {!lastCoachQuestion && !isCoachStreaming && (
                         <div className="flex-1 flex flex-col items-center justify-center text-center p-4 opacity-40 select-none my-auto">
                           <Users className="w-10 h-10 text-slate-500 mb-2" />
@@ -1195,7 +1260,7 @@ function ArenaContent() {
 
           {/* Opponent Side Momentum */}
           <div className="col-span-5 flex items-center gap-3 flex-row-reverse">
-            <AvatarIcon type={sideId === "messi" ? "ronaldo" : "messi"} size={7} />
+            <AvatarIcon type={opponentSideId} size={7} />
             <div className="flex-1">
               <div className="flex justify-between text-[8px] text-slate-500 font-display font-bold uppercase mb-1">
                 <span className="text-red-400">{rivalMomentum}%</span>
@@ -1312,216 +1377,256 @@ function ArenaContent() {
         </div>
       )}
 
-      {/* 5. REFEREE SCOREBOARD OVERLAY */}
-      {activeStep === "REFEREE" && refereeResult && (
-        <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl flex flex-col items-center">
+      {/* 5. UNIFIED POST-GAME ESPORTS ANALYSIS VERDICT PANEL */}
+      {activeStep === "WINNER" && refereeResult && (
+        <div className="absolute inset-0 bg-[#020617]/98 backdrop-blur z-50 flex flex-col p-6 overflow-hidden h-screen max-h-screen text-slate-100 font-sans select-text">
+          
+          {/* Header */}
+          <header className="mb-4 flex justify-between items-center border-b border-slate-900 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow animate-pulse">
+                <Trophy className="w-4 h-4 text-slate-955" />
+              </div>
+              <div>
+                <h1 className="font-display text-sm font-black tracking-widest text-white">
+                  POST-GAME DEBATE ANALYTICS
+                </h1>
+                <span className="text-[8px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
+                  QVAC DETERMINISTIC VERDICT SHEET
+                </span>
+              </div>
+            </div>
             
-            <div className="text-center mb-8">
-              <span className="text-[9px] text-amber-500 font-bold uppercase tracking-widest font-display border border-amber-500/20 px-3 py-1 rounded-full bg-amber-950/20 animate-pulse">
-                DECISION STAGE
-              </span>
-              <h2 className="text-3xl font-black font-display text-white uppercase mt-3 tracking-tight">
-                REFEREE JUDGMENT
-              </h2>
-              <p className="text-slate-400 text-xs mt-2 max-w-sm mx-auto leading-relaxed">
-                The neutral AI Referee has completed evaluating the 3 rounds of transcripts.
-              </p>
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-slate-400 text-[10px] font-bold font-display uppercase tracking-widest">
+              MATCH ANALYZED SUCCESSFULLY
             </div>
+          </header>
 
-            {/* Scorecard panel */}
-            <div className="w-full glass-panel-heavy rounded-2xl p-6 border border-slate-800 bg-slate-950/80 mb-8">
-              
-              <div className="flex justify-between items-center border-b border-slate-900 pb-3 mb-6 font-display text-[10px] font-bold text-slate-500">
-                <span>EVALUATION DIMENSION</span>
-                <span>SCORE (0-100)</span>
-              </div>
-
-              {/* Progress bars categories */}
-              <div className="flex flex-col gap-5 font-display text-xs">
-                {/* Evidence */}
-                <div className="grid grid-cols-12 items-center gap-4">
-                  <span className="col-span-3 font-bold text-white uppercase">EVIDENCE</span>
-                  <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.evidenceScore}%` }} transition={{ duration: 1.2 }} className="h-full bg-gradient-to-r from-blue-500 to-cyan-400" />
-                  </div>
-                  <span className="col-span-2 text-right font-black text-blue-400">{refereeResult.evidenceScore}</span>
+          {/* Scrollable Layout Grid to fit all 7 sections */}
+          <div className="flex-1 grid grid-cols-12 gap-4 overflow-y-auto pr-1 pb-4 scrollbar-thin min-h-0">
+            
+            {/* SECTION 1: Winner Profile Header (col-span-12) */}
+            <div className="col-span-12 glass-panel p-5 border border-slate-900 bg-gradient-to-r from-slate-950 via-slate-900/60 to-slate-950 flex flex-col md:flex-row items-center justify-between gap-6 rounded-xl shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 bottom-0 left-0 w-[4px] bg-gradient-to-b from-amber-500 to-yellow-500" />
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-slate-950 border border-slate-850 flex items-center justify-center shadow-lg shrink-0">
+                  <Trophy className="w-7 h-7 text-amber-400" />
                 </div>
-
-                {/* Logic */}
-                <div className="grid grid-cols-12 items-center gap-4">
-                  <span className="col-span-3 font-bold text-white uppercase">LOGIC</span>
-                  <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.logicScore}%` }} transition={{ duration: 1.2, delay: 0.1 }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-400" />
-                  </div>
-                  <span className="col-span-2 text-right font-black text-purple-400">{refereeResult.logicScore}</span>
-                </div>
-
-                {/* Persuasion */}
-                <div className="grid grid-cols-12 items-center gap-4">
-                  <span className="col-span-3 font-bold text-white uppercase">PERSUASION</span>
-                  <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.persuasionScore}%` }} transition={{ duration: 1.2, delay: 0.2 }} className="h-full bg-gradient-to-r from-amber-500 to-yellow-400" />
-                  </div>
-                  <span className="col-span-2 text-right font-black text-amber-400">{refereeResult.persuasionScore}</span>
-                </div>
-
-                {/* Countering */}
-                <div className="grid grid-cols-12 items-center gap-4">
-                  <span className="col-span-3 font-bold text-white uppercase">COUNTERING</span>
-                  <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.counteringScore}%` }} transition={{ duration: 1.2, delay: 0.3 }} className="h-full bg-gradient-to-r from-rose-500 to-pink-400" />
-                  </div>
-                  <span className="col-span-2 text-right font-black text-rose-400">{refereeResult.counteringScore}</span>
-                </div>
-
-                {/* Overall Score */}
-                <div className="grid grid-cols-12 items-center gap-4">
-                  <span className="col-span-3 font-bold text-white uppercase">OVERALL SCORE</span>
-                  <div className="col-span-7 h-2 bg-slate-900 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${refereeResult.overallScore}%` }} transition={{ duration: 1.2, delay: 0.4 }} className="h-full bg-gradient-to-r from-teal-500 to-emerald-400" />
-                  </div>
-                  <span className="col-span-2 text-right font-black text-teal-400">{refereeResult.overallScore}</span>
-                </div>
-              </div>
-
-              {/* Verdict Verdict */}
-              <div className="border-t border-slate-900 pt-5 mt-6 flex justify-between items-center text-xs text-slate-350 leading-relaxed font-sans font-light">
                 <div>
-                  <span className="text-[8px] text-slate-500 font-bold uppercase font-display block mb-1">
-                    VERDICT NOTES
+                  <span className="text-[8px] text-amber-500 font-bold uppercase tracking-widest font-display block mb-1">
+                    WINNER DECLARED
                   </span>
-                  &quot;{refereeResult.verdict}&quot;
+                  <h2 className="text-2xl font-black font-display text-white tracking-wider uppercase leading-none">
+                    {refereeResult.winner.toUpperCase()} VICTORIOUS
+                  </h2>
+                </div>
+              </div>
+              
+              {/* Total Scores */}
+              <div className="flex items-center gap-8">
+                <div className="text-center">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block mb-1">USER TOTAL</span>
+                  <span className="text-2xl font-black font-display text-blue-400">{refereeResult.overallScore}%</span>
+                </div>
+                <div className="text-slate-700 text-xl font-bold font-display">VS</div>
+                <div className="text-center">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block mb-1">RIVAL TOTAL</span>
+                  <span className="text-2xl font-black font-display text-red-400">{100 - refereeResult.overallScore}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* LEFT COLUMN: Turning Point & Score Breakdown (col-span-12 md:col-span-4) */}
+            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+              {/* SECTION 2: Turning Point */}
+              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl relative overflow-hidden flex flex-col">
+                <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest font-display block mb-2">
+                  SECTION 2 // TURNING POINT
+                </span>
+                <p className="text-xs text-slate-200 font-normal leading-relaxed italic bg-purple-950/10 border border-purple-900/20 p-3 rounded-lg flex-1 select-text">
+                  &ldquo;{refereeResult.turningPoint}&rdquo;
+                </p>
+              </div>
+
+              {/* SECTION 7: Score Breakdown */}
+              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col">
+                <span className="text-[8px] text-teal-400 font-bold uppercase tracking-widest font-display block mb-4">
+                  SECTION 7 // PERFORMANCE RATINGS
+                </span>
+                
+                <div className="flex flex-col gap-4 text-xs font-display">
+                  {/* Evidence */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-white uppercase text-[10px]">EVIDENCE</span>
+                      <span className="font-black text-blue-400">{refereeResult.evidenceScore}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden mb-1.5">
+                      <div style={{ width: `${refereeResult.evidenceScore}%` }} className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-1000" />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-normal font-sans leading-normal select-text">
+                      {refereeResult.categoryBreakdown.evidence}
+                    </p>
+                  </div>
+
+                  {/* Logic */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-white uppercase text-[10px]">LOGIC</span>
+                      <span className="font-black text-purple-400">{refereeResult.logicScore}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden mb-1.5">
+                      <div style={{ width: `${refereeResult.logicScore}%` }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-400 transition-all duration-1000" />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-normal font-sans leading-normal select-text">
+                      {refereeResult.categoryBreakdown.logic}
+                    </p>
+                  </div>
+
+                  {/* Relevance */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-white uppercase text-[10px]">RELEVANCE</span>
+                      <span className="font-black text-rose-400">{refereeResult.counteringScore}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden mb-1.5">
+                      <div style={{ width: `${refereeResult.counteringScore}%` }} className="h-full bg-gradient-to-r from-rose-500 to-pink-400 transition-all duration-1000" />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-normal font-sans leading-normal select-text">
+                      {refereeResult.categoryBreakdown.relevance}
+                    </p>
+                  </div>
+
+                  {/* Persuasion */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-white uppercase text-[10px]">PERSUASION</span>
+                      <span className="font-black text-amber-400">{refereeResult.persuasionScore}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden mb-1.5">
+                      <div style={{ width: `${refereeResult.persuasionScore}%` }} className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-1000" />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-normal font-sans leading-normal select-text">
+                      {refereeResult.categoryBreakdown.persuasion}
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* MIDDLE COLUMN: Best & Weakest User Arguments (col-span-12 md:col-span-4) */}
+            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+              {/* SECTION 3: Best User Argument */}
+              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col justify-between min-h-[140px]">
+                <div>
+                  <span className="text-[8px] text-blue-400 font-bold uppercase tracking-widest font-display block mb-2">
+                    SECTION 3 // BEST USER ARGUMENT
+                  </span>
+                  <p className="text-xs text-slate-200 leading-relaxed font-sans italic select-text">
+                    &ldquo;{refereeResult.bestUserArg.quote}&rdquo;
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-900/60 flex justify-between items-center text-[9px] font-display">
+                  <span className="text-slate-500 uppercase">CATEGORY:</span>
+                  <span className="text-blue-400 font-bold">{refereeResult.bestUserArg.category}</span>
+                  <span className="text-slate-500 uppercase ml-2">IMPACT:</span>
+                  <span className="text-green-400 font-bold">{refereeResult.bestUserArg.impact}</span>
                 </div>
               </div>
 
+              {/* SECTION 5: Weakest User Argument */}
+              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col justify-between min-h-[140px]">
+                <div>
+                  <span className="text-[8px] text-amber-500/80 font-bold uppercase tracking-widest font-display block mb-2">
+                    SECTION 5 // WEAKEST USER ARGUMENT
+                  </span>
+                  <p className="text-xs text-slate-350 leading-relaxed font-sans italic select-text">
+                    &ldquo;{refereeResult.weakestUserArg.quote}&rdquo;
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-900/60 text-[9px] font-sans flex items-start gap-1">
+                  <span className="font-display text-[9px] text-slate-500 uppercase shrink-0">REASON:</span>
+                  <span className="text-red-400 select-text">{refereeResult.weakestUserArg.reason}</span>
+                </div>
+              </div>
             </div>
 
+            {/* RIGHT COLUMN: Best & Weakest Opponent Arguments (col-span-12 md:col-span-4) */}
+            <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+              {/* SECTION 4: Best Opponent Argument */}
+              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col justify-between min-h-[140px]">
+                <div>
+                  <span className="text-[8px] text-red-400 font-bold uppercase tracking-widest font-display block mb-2">
+                    SECTION 4 // BEST OPPONENT ARGUMENT
+                  </span>
+                  <p className="text-xs text-slate-200 leading-relaxed font-sans italic select-text">
+                    &ldquo;{refereeResult.bestOpponentArg.quote}&rdquo;
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-900/60 flex justify-between items-center text-[9px] font-display">
+                  <span className="text-slate-500 uppercase">CATEGORY:</span>
+                  <span className="text-red-400 font-bold">{refereeResult.bestOpponentArg.category}</span>
+                  <span className="text-slate-500 uppercase ml-2">IMPACT:</span>
+                  <span className="text-green-400 font-bold">{refereeResult.bestOpponentArg.impact}</span>
+                </div>
+              </div>
+
+              {/* SECTION 6: Weakest Opponent Argument */}
+              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col justify-between min-h-[140px]">
+                <div>
+                  <span className="text-[8px] text-amber-500/80 font-bold uppercase tracking-widest font-display block mb-2">
+                    SECTION 6 // WEAKEST OPPONENT ARGUMENT
+                  </span>
+                  <p className="text-xs text-slate-350 leading-relaxed font-sans italic select-text">
+                    &ldquo;{refereeResult.weakestOpponentArg.quote}&rdquo;
+                  </p>
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-900/60 text-[9px] font-sans flex items-start gap-1">
+                  <span className="font-display text-[9px] text-slate-500 uppercase shrink-0">REASON:</span>
+                  <span className="text-red-400 select-text">{refereeResult.weakestOpponentArg.reason}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer Action Bar */}
+          <footer className="border-t border-slate-900 pt-3 flex gap-4 items-center z-10 shrink-0">
             <button
-              onClick={() => setActiveStep("WINNER")}
-              className="px-8 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-slate-950 font-bold font-display tracking-widest text-xs rounded-xl hover:scale-105 transition-all flex items-center gap-2"
+              onClick={() => {
+                setDebateFeed([]);
+                setLastCoachQuestion("");
+                setLastCoachResponse("");
+                setCurrentUserInput("");
+                setCurrentCoachInput("");
+                setSelectedFactIds([]);
+                setRefereeResult(null);
+                setUserMomentum(50);
+                setRivalMomentum(50);
+                setRunningScores({
+                  sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
+                  sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
+                });
+                setScoredExchangesCount(0);
+                setUserTopics([]);
+                setOpponentTopics([]);
+                setActiveStep("ARSENAL");
+              }}
+              className="px-6 py-3.5 bg-slate-900 border border-slate-800 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:bg-slate-850 transition-all flex items-center gap-1.5"
             >
-              CLAIM FINAL VERDICT
-              <Trophy className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
+              REPLAY MATCH
             </button>
 
-          </div>
-        </div>
-      )}
+            <Link
+              href="/select"
+              className="px-6 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:scale-105 transition-all flex items-center gap-1.5"
+            >
+              CHOOSE NEW CLASH
+            </Link>
+          </footer>
 
-      {/* 6. WINNER SCREEN CELEBRATION OVERLAY */}
-      {activeStep === "WINNER" && refereeResult && (
-        <div className="absolute inset-0 bg-[#020617]/95 backdrop-blur z-50 flex items-center justify-center p-4">
-          
-          {/* Confetti floats */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            {[...Array(25)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: Math.random() * 8 + 4,
-                  height: Math.random() * 8 + 4,
-                  backgroundColor: i % 3 === 0 ? "#f59e0b" : i % 3 === 1 ? "#3b82f6" : "#ef4444",
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -120, 0],
-                  x: [0, Math.random() * 40 - 20, 0],
-                  opacity: [0.1, 0.9, 0.1],
-                  scale: [0.5, 1.2, 0.5]
-                }}
-                transition={{
-                  duration: Math.random() * 4 + 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            ))}
-          </div>
-
-          <div className="w-full max-w-md text-center z-10">
-            
-            {/* Trophy visual */}
-            <div className="w-28 h-28 rounded-full bg-slate-950 border border-slate-900 flex items-center justify-center mb-6 shadow-2xl mx-auto">
-              <Trophy className="w-12 h-12 text-amber-400 animate-pulse" />
-            </div>
-
-            <span className="text-[9px] text-amber-400 font-bold uppercase tracking-widest font-display border border-amber-500/20 px-3 py-1 rounded-full bg-amber-950/20 mb-3 inline-block">
-              DEBATE CHAMPION
-            </span>
-
-            <h2 className="text-3xl md:text-4xl font-black font-display text-white uppercase tracking-tight mb-2">
-              {refereeResult.winner.toUpperCase()} <span className="bg-gradient-to-r from-amber-400 to-yellow-500 bg-clip-text text-transparent">VICTORIOUS</span>
-            </h2>
-
-            <p className="text-slate-400 text-xs font-light leading-relaxed max-w-xs mx-auto mb-8 font-sans">
-              The on-device QVAC debate analysis has concluded. You have been awarded the status of **Debate Tactician**.
-            </p>
-
-            {/* Summary statistics card */}
-            <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-5 mb-8 text-left font-display text-[11px] leading-relaxed flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">WINNER DECLARED:</span>
-                <span className="font-black text-amber-400">{refereeResult.winner}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">EVIDENCE SCORE:</span>
-                <span className="font-bold text-blue-400">{refereeResult.evidenceScore} / 100</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">LOGIC SCORE:</span>
-                <span className="font-bold text-purple-400">{refereeResult.logicScore} / 100</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">PERSUASION SCORE:</span>
-                <span className="font-bold text-yellow-400">{refereeResult.persuasionScore} / 100</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">OVERALL SCORE:</span>
-                <span className="font-bold text-teal-450">{refereeResult.overallScore} / 100</span>
-              </div>
-            </div>
-
-            {/* Replay choices action */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setDebateFeed([]);
-                  setLastCoachQuestion("");
-                  setLastCoachResponse("");
-                  setCurrentUserInput("");
-                  setCurrentCoachInput("");
-                  setSelectedFactIds([]);
-                  setRefereeResult(null);
-                  setUserMomentum(50);
-                  setRivalMomentum(50);
-                  setRunningScores({
-                    sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
-                    sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
-                  });
-                  setScoredExchangesCount(0);
-                  setUserTopics([]);
-                  setOpponentTopics([]);
-                  setActiveStep("ARSENAL");
-                }}
-                className="flex-1 px-5 py-4 bg-slate-900 border border-slate-800 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:bg-slate-850 transition-all flex items-center justify-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                REPLAY MATCH
-              </button>
-
-              <Link
-                href="/select"
-                className="flex-1 px-5 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-1.5"
-              >
-                CHOOSE OTHER
-                <Swords className="w-3.5 h-3.5 text-slate-100" />
-              </Link>
-            </div>
-
-          </div>
         </div>
       )}
 

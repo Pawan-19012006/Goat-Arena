@@ -91,29 +91,49 @@ Respond ONLY with a flat JSON object in this exact schema, do not include any ot
       // Compact transcript to keep prompt small
       const transcript = history.map((msg, index) => {
         const speaker = msg.role === "user" ? `Side A (${sideA})` : `Side B (${sideB})`;
-        const shortContent = msg.content.length > 60 ? msg.content.slice(0, 60) + "..." : msg.content;
+        const shortContent = msg.content.length > 80 ? msg.content.slice(0, 80) + "..." : msg.content;
         return `[Statement ${index + 1}] ${speaker}: "${shortContent}"`;
       }).join("\n\n");
 
-      // Compose the neutral verdict explanation prompt
-      const prompt = `You are a debate referee. Explain the outcome of the football clash between Side A (${sideA}) and Side B (${sideB}).
-Mathematically calculated Winner: ${winner}
-Side A (${sideA}) scores: Evidence=${sideAScores.evidence}, Logic=${sideAScores.logic}, Relevance=${sideAScores.relevance}, Persuasion=${sideAScores.persuasion}
-Side B (${sideB}) scores: Evidence=${sideBScores.evidence}, Logic=${sideBScores.logic}, Relevance=${sideBScores.relevance}, Persuasion=${sideBScores.persuasion}
+      // Compose the neutral verdict explanation prompt requesting the new structured fields
+      const prompt = `You are a professional sports debate analyst referee reviewing a football pundit debate between Side A (${sideA}) and Side B (${sideB}).
+The mathematically calculated winner is: ${winner}
+Side A (${sideA}) total stats: Evidence=${sideAScores.evidence}, Logic=${sideAScores.logic}, Relevance=${sideAScores.relevance}, Persuasion=${sideAScores.persuasion}
+Side B (${sideB}) total stats: Evidence=${sideBScores.evidence}, Logic=${sideBScores.logic}, Relevance=${sideBScores.relevance}, Persuasion=${sideBScores.persuasion}
 
 Debate Transcript:
 ${transcript}
 
-Write a brief, professional evaluation explaining the outcome. Do NOT choose or declare a different winner.
-Address:
-1. Strongest argument of both sides.
-2. Weakest argument of both sides.
-3. The turning point of the clash.
-4. Why the winner (${winner}) scored higher.
+Write a detailed, structured post-game analysis explanation. Do NOT choose or declare a different winner than ${winner}.
+Address the exact arguments quote from the transcript.
 
-Limit the response to under 120 words. Respond ONLY with a JSON object in this exact schema:
+Respond ONLY with a JSON object in this exact schema. Do not include markdown code block backticks (like \`\`\`json):
 {
-  "verdict": "Explanation text..."
+  "turningPoint": "A concise paragraph explaining the decisive moment that changed the debate and shifted the momentum.",
+  "bestUserArg": {
+    "quote": "Quote of the user's best argument from the transcript",
+    "category": "Evidence / Logic / Relevance / Persuasion",
+    "impact": "+9 Evidence, +8 Persuasion"
+  },
+  "bestOpponentArg": {
+    "quote": "Quote of the opponent's best argument from the transcript",
+    "category": "Evidence / Logic / Relevance / Persuasion",
+    "impact": "+9 Logic, +7 Persuasion"
+  },
+  "weakestUserArg": {
+    "quote": "Quote of the user's weakest argument from the transcript",
+    "reason": "Vague statement and lacks statistics or direct relevance"
+  },
+  "weakestOpponentArg": {
+    "quote": "Quote of the opponent's weakest argument from the transcript",
+    "reason": "Failed to address modern context or relied on repetitive history"
+  },
+  "categoryBreakdown": {
+    "evidence": "Brief explanation of what boosted or reduced the Evidence score",
+    "logic": "Brief explanation of what boosted or reduced the Logic score",
+    "relevance": "Brief explanation of what boosted or reduced the Relevance score",
+    "persuasion": "Brief explanation of what boosted or reduced the Persuasion score"
+  }
 }`;
 
       console.log("[API/Agent/Referee] Generating explanation. Prompt Length:", prompt.length);
@@ -127,13 +147,37 @@ Limit the response to under 120 words. Respond ONLY with a JSON object in this e
       let parsedResult;
       try {
         parsedResult = JSON.parse(cleanText);
-        if (!parsedResult.verdict) {
-          throw new Error("Missing verdict field in parsed result");
+        if (!parsedResult.turningPoint || !parsedResult.bestUserArg || !parsedResult.bestOpponentArg) {
+          throw new Error("Missing required explanation keys in parsed result");
         }
       } catch (e) {
         console.warn("[API/Agent/Referee] Explanation parsing failed, using fallback:", e);
         parsedResult = {
-          verdict: `The clash between Side A (${sideA}) and Side B (${sideB}) ended in a mathematical win for ${winner}. ${winner} displayed stronger consistency and argument relevancy across the three rounds.`
+          turningPoint: `The debate shifted when Side A (${sideA}) successfully defended its modern accomplishments against Side B (${sideB})'s historical dominance.`,
+          bestUserArg: {
+            quote: history.find(h => h.role === "user")?.content || "No quote recorded.",
+            category: "Evidence",
+            impact: "+8 Evidence, +7 Persuasion"
+          },
+          bestOpponentArg: {
+            quote: history.find(h => h.role === "assistant")?.content || "No quote recorded.",
+            category: "Logic",
+            impact: "+7 Logic, +8 Persuasion"
+          },
+          weakestUserArg: {
+            quote: "Initial introductory arguments.",
+            reason: "Contained limited supporting statistics or facts."
+          },
+          weakestOpponentArg: {
+            quote: "Standard setup points.",
+            reason: "Relied on generic historical arguments without challenging user claims."
+          },
+          categoryBreakdown: {
+            evidence: `Evidence scores were decided by direct matches from the player profile data files.`,
+            logic: `Logical consistency remained high through structured counterpoint exchanges.`,
+            relevance: `Both sides stayed focused on direct comparisons rather than changing topics.`,
+            persuasion: `Competitive live match punchlines defined the persuasion scores.`
+          }
         };
       }
 
