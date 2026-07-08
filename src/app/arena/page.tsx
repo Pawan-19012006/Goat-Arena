@@ -170,6 +170,8 @@ function ArenaContent() {
   const [currentCoachInput, setCurrentCoachInput] = useState("");
   const [isCoachStreaming, setIsCoachStreaming] = useState(false);
   const [currentCoachTokenStream, setCurrentCoachTokenStream] = useState("");
+  // UI-only history of Q&A pairs for the stacked card display
+  const [coachHistory, setCoachHistory] = useState<{ question: string; answer: string }[]>([]);
 
   // Momentum scoring metrics
   const [userMomentum, setUserMomentum] = useState(50);
@@ -312,6 +314,7 @@ function ArenaContent() {
       setTimeLeft(STAGE_CONFIG.ROUND_2.duration);
       setLastCoachQuestion("");
       setLastCoachResponse("");
+      setCoachHistory([]);
     } else if (activeStep === "ROUND_2") {
       setActiveStep("TIMEOUT_2");
       setTimeLeft(STAGE_CONFIG.TIMEOUT_2.duration);
@@ -320,6 +323,7 @@ function ArenaContent() {
       setTimeLeft(STAGE_CONFIG.ROUND_3.duration);
       setLastCoachQuestion("");
       setLastCoachResponse("");
+      setCoachHistory([]);
     } else if (activeStep === "ROUND_3") {
       setIsTimerActive(false);
       handleTriggerReferee();
@@ -550,6 +554,10 @@ function ArenaContent() {
 
     setLastCoachResponse(coachReply);
     setCurrentCoachTokenStream("");
+    // Push completed pair into display history (UI only)
+    if (coachReply.trim()) {
+      setCoachHistory(prev => [...prev, { question: questionText, answer: coachReply }]);
+    }
   };
 
   // Compile final scores with neutral Referee route
@@ -1057,81 +1065,113 @@ function ArenaContent() {
         </div>
 
         {/* RIGHT COLUMN: TACTICAL COACH (lg:col-span-3) */}
-        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0 overflow-hidden">
+        <div className="lg:col-span-3 flex flex-col gap-3 min-h-0 overflow-hidden">
           {activeStep === "TIMEOUT_1" || activeStep === "TIMEOUT_2" ? (
-            <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-blue-950/10 via-slate-950 to-slate-950/70 flex flex-col justify-between relative overflow-hidden shadow-lg shadow-black/40 animate-fade-in min-h-0">
+            <div className="flex-1 glass-panel rounded-xl border border-slate-900 bg-gradient-to-b from-blue-950/10 via-slate-950 to-slate-950/70 flex flex-col relative overflow-hidden shadow-lg shadow-black/40 animate-fade-in min-h-0">
               {/* Blue border top highlight */}
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500/50" />
-              
-              {/* Coach detail */}
-              <div className="flex-1 flex flex-col justify-between relative z-10">
-                
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="text-[9px] text-blue-400 font-bold uppercase tracking-widest font-display border border-blue-500/20 px-2.5 py-0.5 rounded-full bg-blue-950/20">
-                      PRIVATE TACTICAL ASSISTANT
+
+              {/* ── COACH HEADER ── */}
+              <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-slate-900 shrink-0">
+                <div className="flex items-center gap-3">
+                  <AvatarIcon type="coach" size={10} />
+                  <div>
+                    <h3 className="text-base font-black text-white font-display uppercase tracking-wider leading-none">
+                      COACH FINCH
+                    </h3>
+                    <span className="text-[9px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-0.5">
+                      PRIVATE RESEARCH ASSISTANT
                     </span>
-                    
-                    <div className="flex items-center gap-1.5 text-[8px] font-bold text-green-400 font-display uppercase bg-green-950/20 border border-green-900/30 px-2 py-0.5 rounded-full">
-                      <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
-                      ONLINE
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[8px] font-bold text-green-400 font-display uppercase bg-green-950/20 border border-green-900/30 px-2 py-0.5 rounded-full">
+                  <span className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
+                  ONLINE
+                </div>
+              </div>
+
+              {/* ── SCROLLABLE Q&A HISTORY ── */}
+              <div
+                className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3 scrollbar-thin"
+                style={{ minHeight: 0 }}
+              >
+                {/* Empty state — compact status card */}
+                {coachHistory.length === 0 && !isCoachStreaming && (
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      <span className="text-xs font-bold font-display text-blue-400 uppercase tracking-widest">COACH STATUS</span>
+                    </div>
+                    <p className="text-sm text-slate-300 font-sans leading-relaxed mb-3">
+                      Ready to answer football questions.
+                    </p>
+                    <div className="border-t border-slate-800 pt-3">
+                      <p className="text-[10px] text-slate-500 font-display uppercase tracking-wider mb-2">EXAMPLES</p>
+                      <ul className="flex flex-col gap-1.5">
+                        {[
+                          "Who does Haaland represent?",
+                          "Give 3 arguments for Brazil.",
+                          "List Messi achievements."
+                        ].map((ex, i) => (
+                          <li
+                            key={i}
+                            onClick={() => setCurrentCoachInput(ex)}
+                            className="flex items-start gap-2 text-sm text-slate-400 hover:text-blue-300 cursor-pointer transition-colors"
+                          >
+                            <span className="text-blue-500 shrink-0 mt-0.5">•</span>
+                            <span>{ex}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
+                )}
 
-                  {/* Coach card profile */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <AvatarIcon type="coach" size={12} />
-                    <div>
-                      <h3 className="text-sm font-black text-white font-display uppercase tracking-wider leading-none">
-                        COACH FINCH
-                      </h3>
-                      <span className="text-[9px] text-slate-500 font-semibold tracking-wider font-display uppercase block mt-1">
-                        YOUR PRIVATE RESEARCH ASSISTANT
-                      </span>
+                {/* Stacked Q&A history cards */}
+                {coachHistory.map((item, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    {/* Question card */}
+                    <div className="bg-blue-950/20 border border-blue-900/30 rounded-xl px-3 py-2.5">
+                      <span className="text-[9px] font-bold font-display text-blue-400 uppercase tracking-widest block mb-1">Q</span>
+                      <p className="text-base font-semibold text-slate-200 leading-snug">{item.question}</p>
+                    </div>
+                    {/* Answer card */}
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2.5">
+                      <span className="text-[9px] font-bold font-display text-green-400 uppercase tracking-widest block mb-1">A</span>
+                      <div className="text-base leading-relaxed text-slate-100 whitespace-pre-wrap select-text font-sans">{item.answer}</div>
                     </div>
                   </div>
+                ))}
 
-                  {/* Private Q&A message board — fixed height, scrollable */}
-                  <div className="border-t border-slate-900 pt-3 mb-3">
-                    <div className="bg-slate-950/80 border border-slate-900 rounded-xl p-3 overflow-y-auto flex flex-col gap-2.5 font-sans" style={{ minHeight: "120px", maxHeight: "220px" }}>
-                      {!lastCoachQuestion && !isCoachStreaming && (
-                        <div className="flex flex-col items-center justify-center text-center py-4 opacity-40 select-none">
-                          <Users className="w-8 h-8 text-slate-500 mb-2" />
-                          <p className="text-[9px] font-display uppercase tracking-wider text-slate-400 leading-relaxed">
-                            Ask Coach Finch any football question.
-                          </p>
-                        </div>
-                      )}
-
-                      {lastCoachQuestion && (
-                        <div className="border-b border-slate-900 pb-2 mb-1">
-                          <span className="font-bold block text-[8px] font-display text-slate-500 uppercase mb-1">YOUR QUESTION</span>
-                          <p className="text-sm font-normal text-slate-300 leading-snug italic">&ldquo;{lastCoachQuestion}&rdquo;</p>
-                        </div>
-                      )}
-
-                      {(lastCoachResponse || currentCoachTokenStream) && (
-                        <div>
-                          <span className="font-bold block text-[8px] font-display text-blue-400 uppercase mb-1.5">ASSISTANT</span>
-                          <div className="text-sm font-normal leading-relaxed text-slate-200 whitespace-pre-wrap select-text">
-                            {currentCoachTokenStream || lastCoachResponse}
-                          </div>
-                        </div>
-                      )}
-
-                      {isCoachStreaming && !currentCoachTokenStream && (
-                        <div className="flex items-center gap-2 text-xs text-blue-400 animate-pulse">
+                {/* Live streaming card for in-progress answer */}
+                {isCoachStreaming && (
+                  <div className="flex flex-col gap-1.5">
+                    {lastCoachQuestion && (
+                      <div className="bg-blue-950/20 border border-blue-900/30 rounded-xl px-3 py-2.5">
+                        <span className="text-[9px] font-bold font-display text-blue-400 uppercase tracking-widest block mb-1">Q</span>
+                        <p className="text-base font-semibold text-slate-200 leading-snug">{lastCoachQuestion}</p>
+                      </div>
+                    )}
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2.5">
+                      <span className="text-[9px] font-bold font-display text-green-400 uppercase tracking-widest block mb-1">A</span>
+                      {currentCoachTokenStream ? (
+                        <div className="text-base leading-relaxed text-slate-100 whitespace-pre-wrap select-text font-sans">{currentCoachTokenStream}</div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-sm text-blue-400 animate-pulse">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           Analyzing...
                         </div>
                       )}
-                      <div ref={coachEndRef} />
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Private Q&A Ask Box */}
-                <div className="border-t border-slate-900 pt-3 flex items-center gap-2">
+                <div ref={coachEndRef} />
+              </div>
+
+              {/* ── PINNED INPUT ── */}
+              <div className="border-t border-slate-900 px-4 py-3 shrink-0">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={currentCoachInput}
@@ -1143,32 +1183,33 @@ function ArenaContent() {
                     }}
                     disabled={isCoachStreaming || isOpponentStreaming}
                     placeholder="Ask Coach anything..."
-                    className="flex-1 bg-slate-950 border border-slate-850 rounded-lg px-3 py-2 text-[11px] text-slate-100 placeholder:text-slate-650 focus:outline-none focus:border-blue-500/80 transition-all font-sans"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/80 focus:ring-1 focus:ring-blue-500/20 transition-all font-sans"
                   />
-                  
                   <button
                     onClick={handleAskCoach}
                     disabled={currentCoachInput.trim().length < 4 || isCoachStreaming || isOpponentStreaming}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0 ${
                       currentCoachInput.trim().length >= 4 && !isCoachStreaming && !isOpponentStreaming
-                        ? "bg-blue-600 text-white hover:bg-blue-500"
-                        : "bg-slate-900 text-slate-650 border border-slate-850"
+                        ? "bg-blue-600 text-white hover:bg-blue-500 shadow shadow-blue-500/20"
+                        : "bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed"
                     }`}
                   >
-                    <Send className="w-3 h-3" />
+                    <Send className="w-3.5 h-3.5" />
                   </button>
                 </div>
-
+                <p className="text-[9px] text-slate-600 font-display uppercase tracking-wider mt-1.5 text-center">
+                  PRESS ENTER TO SEND
+                </p>
               </div>
             </div>
           ) : (
             <div className="flex-1 glass-panel rounded-xl p-5 border border-slate-900 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-950/70 flex flex-col items-center justify-center text-center opacity-40 select-none shadow-lg shadow-black/40">
               <Shield className="w-12 h-12 text-slate-600 mb-3 animate-pulse" />
-              <span className="text-xs font-display font-bold uppercase tracking-widest text-slate-500">
+              <span className="text-sm font-display font-bold uppercase tracking-widest text-slate-500">
                 COACH PANEL LOCKED
               </span>
-              <p className="text-[10px] text-slate-550 font-sans mt-2 max-w-[180px] leading-relaxed">
-                Coach Finch is only available during Strategic Timeouts. Focus on the live debate feed.
+              <p className="text-sm text-slate-500 font-sans mt-2 max-w-[180px] leading-relaxed">
+                Coach Finch is only available during Strategic Timeouts.
               </p>
             </div>
           )}
@@ -1307,7 +1348,7 @@ function ArenaContent() {
               <h2 className="text-3xl md:text-4xl font-black font-display text-white uppercase mt-3 tracking-tight">
                 YOUR AI <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">ARSENAL</span>
               </h2>
-              <p className="text-slate-400 text-xs mt-2 max-w-lg mx-auto leading-relaxed">
+              <p className="text-slate-400 text-base mt-2 max-w-lg mx-auto leading-relaxed">
                 Arm yourself with stats from our local knowledge base. Select facts to load into your debate arsenal before starting the match.
               </p>
             </div>
@@ -1322,7 +1363,7 @@ function ArenaContent() {
                   <span className="text-2xl font-black text-white font-display block mb-1">
                     {stat.value}
                   </span>
-                  <span className="text-[10px] text-slate-450 leading-relaxed font-light font-sans block">
+                  <span className="text-sm text-slate-400 leading-relaxed font-normal font-sans block">
                     {stat.description}
                   </span>
                 </div>
@@ -1331,12 +1372,12 @@ function ArenaContent() {
 
             {/* Interactive fact selectors */}
             <div className="glass-panel border-slate-900 rounded-xl p-6 mb-8 bg-slate-950/25">
-              <span className="text-xs font-bold font-display text-white uppercase mb-4 flex items-center gap-2">
+              <span className="text-sm font-bold font-display text-white uppercase mb-4 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-blue-400" />
                 TACTICAL FACTS SHELF (SELECT TO ARM)
               </span>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
                 {data.arsenal.map((item, idx) => {
                   const isSelected = selectedFactIds.includes(idx);
                   return (
@@ -1349,14 +1390,14 @@ function ArenaContent() {
                           setSelectedFactIds([...selectedFactIds, idx]);
                         }
                       }}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
                         isSelected 
                           ? "bg-slate-900 border-blue-500/50" 
                           : "bg-slate-950/40 border-slate-900 hover:border-slate-800"
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-bold text-white uppercase font-display flex items-center gap-1.5">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold text-white uppercase font-display flex items-center gap-1.5">
                           <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-blue-400" : "bg-slate-700"}`} />
                           {item.title}
                         </span>
@@ -1366,7 +1407,7 @@ function ArenaContent() {
                           {isSelected ? "ARMED" : "ARM"}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-light leading-relaxed pl-3 font-sans mt-1">
+                      <p className="text-sm text-slate-300 font-normal leading-relaxed pl-3 font-sans">
                         {item.fact}
                       </p>
                     </div>
@@ -1526,6 +1567,8 @@ function ArenaContent() {
               onClick={() => {
                 setDebateFeed([]);
                 setLastCoachQuestion("");
+                setLastCoachResponse("");
+                setCoachHistory([]);
                 setLastCoachResponse("");
                 setCurrentUserInput("");
                 setCurrentCoachInput("");
