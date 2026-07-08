@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" width="220">
+  <img src="public/images/logo.png" width="220">
 </p>
 
 <h1 align="center">⚽ GOAT Arena</h1>
