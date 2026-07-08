@@ -136,6 +136,12 @@ function ArenaContent() {
   // Referee Results
   const [refereeResult, setRefereeResult] = useState<RefereeVerdict | null>(null);
   const [selectedFactIds, setSelectedFactIds] = useState<number[]>([]);
+  // Running scores state (evidence, logic, relevance, persuasion) accumulated per exchange
+  const [runningScores, setRunningScores] = useState({
+    sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
+    sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
+  });
+  const [scoredExchangesCount, setScoredExchangesCount] = useState(0);
 
   // Debug mode states
   const [isDebugMode, setIsDebugMode] = useState(false);
@@ -357,6 +363,50 @@ function ArenaContent() {
     const rivalShift = Math.floor(Math.random() * 12) + 5;
     setRivalMomentum(prev => Math.min(95, prev + rivalShift));
     setUserMomentum(prev => Math.max(15, prev - Math.floor(rivalShift * 0.7)));
+
+    // Score the current exchange in the background
+    handleScoreExchange(userText, finalOpponentText);
+  };
+
+  // Background scoring fetch per round exchange
+  const handleScoreExchange = async (userText: string, opponentText: string) => {
+    if (!data) return;
+    try {
+      const res = await fetch("/api/agent/referee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "score",
+          sideA: data.teamName,
+          sideB: data.rival,
+          sideAStatement: userText,
+          sideBStatement: opponentText
+        })
+      });
+      if (!res.ok) throw new Error("Scoring endpoint failed");
+      const scores = await res.json() as {
+        sideA: { evidence: number; logic: number; relevance: number; persuasion: number };
+        sideB: { evidence: number; logic: number; relevance: number; persuasion: number };
+      };
+      
+      setRunningScores(prev => ({
+        sideA: {
+          evidence: prev.sideA.evidence + (scores.sideA.evidence ?? 0),
+          logic: prev.sideA.logic + (scores.sideA.logic ?? 0),
+          relevance: prev.sideA.relevance + (scores.sideA.relevance ?? 0),
+          persuasion: prev.sideA.persuasion + (scores.sideA.persuasion ?? 0)
+        },
+        sideB: {
+          evidence: prev.sideB.evidence + (scores.sideB.evidence ?? 0),
+          logic: prev.sideB.logic + (scores.sideB.logic ?? 0),
+          relevance: prev.sideB.relevance + (scores.sideB.relevance ?? 0),
+          persuasion: prev.sideB.persuasion + (scores.sideB.persuasion ?? 0)
+        }
+      }));
+      setScoredExchangesCount(prev => prev + 1);
+    } catch (e) {
+      console.error("[Background Scoring Error]", e);
+    }
   };
 
   // Custom private user ask to Tactical Coach
@@ -391,15 +441,49 @@ function ArenaContent() {
         content: f.content
       }));
 
+      // Calculate total points mathematically
+      const totalA = runningScores.sideA.evidence + runningScores.sideA.logic + runningScores.sideA.relevance + runningScores.sideA.persuasion;
+      const totalB = runningScores.sideB.evidence + runningScores.sideB.logic + runningScores.sideB.relevance + runningScores.sideB.persuasion;
+
+      const winnerName = totalA >= totalB ? data.teamName : data.rival;
+      const winnerSide = totalA >= totalB ? data.teamName.toUpperCase() : data.rival.toUpperCase();
+
       const res = await fetch("/api/agent/referee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ side: data.teamName, rival: data.rival, history: historyPayload })
+        body: JSON.stringify({
+          action: "explain",
+          sideA: data.teamName,
+          sideB: data.rival,
+          winner: winnerName,
+          sideAScores: runningScores.sideA,
+          sideBScores: runningScores.sideB,
+          history: historyPayload
+        })
       });
 
       if (!res.ok) throw new Error("Referee grading failed.");
-      const scoreData = await res.json() as RefereeVerdict;
-      setRefereeResult(scoreData);
+      const explainData = await res.json() as { verdict: string };
+
+      // Map accumulated metrics to the final 0-100 scoreboard
+      // Denominator count is max of 1 and scoredExchangesCount
+      const count = Math.max(1, scoredExchangesCount);
+      const evidenceScore = Math.round((runningScores.sideA.evidence / (count * 10)) * 100);
+      const logicScore = Math.round((runningScores.sideA.logic / (count * 10)) * 100);
+      const persuasionScore = Math.round((runningScores.sideA.persuasion / (count * 10)) * 100);
+      const counteringScore = Math.round((runningScores.sideA.relevance / (count * 10)) * 100);
+      const overallScore = Math.round((totalA / (count * 40)) * 100);
+
+      setRefereeResult({
+        winner: winnerName,
+        winnerSide: winnerSide,
+        evidenceScore,
+        logicScore,
+        persuasionScore,
+        counteringScore,
+        overallScore,
+        verdict: explainData.verdict
+      });
 
       const pLen = res.headers.get("x-prompt-length");
       setDebugStats({
@@ -1336,6 +1420,11 @@ function ArenaContent() {
                   setRefereeResult(null);
                   setUserMomentum(50);
                   setRivalMomentum(50);
+                  setRunningScores({
+                    sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
+                    sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
+                  });
+                  setScoredExchangesCount(0);
                   setActiveStep("ARSENAL");
                 }}
                 className="flex-1 px-5 py-4 bg-slate-900 border border-slate-800 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:bg-slate-850 transition-all flex items-center justify-center gap-1.5"
