@@ -1,22 +1,11 @@
-# Lionel Messi - Football Legend Profile
-
-## Statistics & Achievements
-- **Ballon d'Ors**: 8 (Won in 2009, 2010, 2011, 2012, 2015, 2019, 2021, 2023) - The most in football history.
-- **Career Goals**: Over 850 official career goals for club and country.
-- **Career Assists**: Over 380 official assists, making him the all-time leading playmaker.
-- **Trophies**: 44 major trophies, including the 2022 FIFA World Cup, 2021 & 2024 Copa América, and 4 UEFA Champions League titles with Barcelona (2006, 2009, 2011, 2015).
-
-## Playmaking & Dribbling
-- Holds the record for the most assists in La Liga history (192) and Copa América history (18).
-- Finished as the top dribbler in Europe's top 5 leagues in multiple seasons, averaging over 4.5 completed dribbles per 90 minutes.
-- Most key passes and big chances created in the modern era of European football.
-
-## 2022 FIFA World Cup Impact
-- Led Argentina to victory as Captain.
-- Won the Golden Ball as the tournament's best player (the only player to win it twice, 2014 and 2022).
-- Scored 7 goals and registered 3 assists.
-- Became the first player in history to score in every single stage of a World Cup: group stage, round of 16, quarter-final, semi-final, and final.
-
-## Calendar Year Peak
-- Scored a world-record 91 goals in a single calendar year (2012) in just 69 matches, breaking Gerd Müller's record of 85.
-- Registered 22 assists in that same year, contributing to 113 goals in 2012.
+# LIONEL MESSI
+## HISTORY
+Lionel Messi was born in 1987 in Rosario, Argentina. Diagnosed with a growth hormone deficiency, he moved to Barcelona's La Masia academy in 2000. He made his senior Barcelona debut in 2004, playing under Frank Rijkaard. Messi spent 17 years at Barcelona before transferring to PSG in 2021, and later to Inter Miami in 2023. He is considered Argentina's greatest modern legend alongside Diego Maradona and Angel Di Maria.
+## RECORDS
+Messi holds the world record for most goals in a single calendar year, scoring 91 goals in 2012 (69 games) under Tito Vilanova. He is the all-time top scorer in La Liga history (474 goals) and holds the record for the most La Liga assists (192). He is also the leading playmaker in Copa América history with 18 assists.
+## ACHIEVEMENTS
+Messi has won a record 8 Ballon d'Or awards (2009-2012, 2015, 2019, 2021, 2023). He won the 2022 FIFA World Cup (winning the Golden Ball twice), Copa América 2021 & 2024, and 4 UEFA Champions League titles with Barcelona (2006, 2009, 2011, 2015). In total, he has won 44 major trophies, the most in football history.
+## TACTICS
+Messi operates primarily as a playmaker, false nine, or right-sided winger. He excels at cutting inside onto his left foot, threading pocket passes, and executing high-volume progressive dribbles through central defense channels. Under Pep Guardiola, he perfected the false nine role.
+## WEAKNESSES
+Messi has reduced defensive work rate and low defensive press engagement. He is physically reliant on midfielder coverage to close down gaps during transition. He has also experienced physical acceleration decline in recent years.

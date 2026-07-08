@@ -1,57 +1,50 @@
-# GOAT Arena referee & State Operations (Phase 3.4)
+# GOAT Arena gameplay & State Operations (Phase 3.5)
 
-This document explains the split Referee evaluation architecture, background exchange scoring, mathematical winner calculation, and final explanation compilations.
-
----
-
-## 🏃 Retrieval Mappings
-
-Explicit mappings link sides directly to their database profile file to prevent cross-debate leaks:
-- **Messi Side**: Coach uses `messi.md` | Opponent uses `ronaldo.md`
-- **Ronaldo Side**: Coach uses `ronaldo.md` | Opponent uses `messi.md`
-- **Mbappe Side**: Coach uses `mbappe.md` | Opponent uses `haaland.md`
-- **Haaland Side**: Coach uses `haaland.md` | Opponent uses `mbappe.md`
-- **Argentina Side**: Coach uses `argentina.md` | Opponent uses `brazil.md`
-- **Brazil Side**: Coach uses `brazil.md` | Opponent uses `argentina.md`
-
-`getEntityContext(entityName)` in [retrieval.ts](file:///Users/pawaneswaran/Desktop/Work/HACKATHONS/Tether/SourceShield/goat-arena/src/lib/retrieval.ts) loads only the selected entity knowledge file (truncating content to 1300 characters).
+This document explains the query-routing layer, segmented knowledge profiles, strategic coach intent responses, opponent structured rebuttals, and topic repetition memory.
 
 ---
 
-## ⏱️ Strategic Timeout Coach Locks
+## 🔎 Segmented Knowledge Profiles & Query Routing
 
-The Coach panel is unlocked *only* during timeouts (`TIMEOUT_1`, `TIMEOUT_2`). Outside timeouts, the panel is locked and clear transitions wipe coach advice states to prevent cheats.
+To prevent the AI from receiving irrelevant or oversized context, the database is divided into segmented subheaders and matched using keyword query-routing:
+
+### 1. Database Subheaders (`knowledge/`)
+Each profile file contains:
+- `## HISTORY` (birth, origins, academy, transfers, eras)
+- `## RECORDS` (specific record numbers, goals, assists)
+- `## ACHIEVEMENTS` (trophies, awards, World Cups)
+- `## TACTICS` (positions, roles, style of play)
+- `## WEAKNESSES` (work rate, physical pace decline, transition gaps)
+
+### 2. Query Routing Layer (`src/lib/retrieval.ts`)
+The routing helper `getEntitySectionContext(entityName, query)` checks the query keywords:
+- If history/timeline ➔ routes to `HISTORY`
+- If records/statistics ➔ routes to `RECORDS`
+- If trophies/cups ➔ routes to `ACHIEVEMENTS`
+- If beat/fail/weakness ➔ routes to `WEAKNESSES`
+- Default ➔ routes to `TACTICS`
+It extracts only the matching section text (~200–400 characters), keeping prompt size minimal.
 
 ---
 
-## ⚖️ Referee Redesign (Mathematical Winners)
+## 🎓 Strategic coach Query Classification
 
-The AI Referee is split into two actions to ensure outcomes are deterministic and free of hallucination:
+- **Prompt Guidelines**:
+  - Classifies query intent based on routed category context.
+  - Answers factually if the question is historical/factual, rather than forcing a Scaloni tactic.
+  - Constrains response length strictly to **1 or 2 sentences** (no list items or bullet points).
 
-### 1. Exchange Scoring (`action: "score"`)
-- Called in the background after the user submits an argument and the opponent rebuttal finishes streaming.
-- Evaluates statements on **Evidence, Logic, Relevance, and Persuasion (0-10 scale)**.
-- **Client Scoreboard State**:
-  ```typescript
-  const [runningScores, setRunningScores] = useState({
-    sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
-    sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
-  });
-  const [scoredExchangesCount, setScoredExchangesCount] = useState(0);
-  ```
+---
 
-### 2. Winner Determination
-- The winner is calculated mathematically by the client at the end of the match:
-  ```typescript
-  const totalA = runningScores.sideA.evidence + runningScores.sideA.logic + runningScores.sideA.relevance + runningScores.sideA.persuasion;
-  const totalB = runningScores.sideB.evidence + runningScores.sideB.logic + runningScores.sideB.relevance + runningScores.sideB.persuasion;
-  const winnerName = totalA >= totalB ? data.teamName : data.rival;
-  ```
+## 🥊 Structured AI Opponent Rebuttals
 
-### 3. Verdict Explanation Compilation (`action: "explain"`)
-- The client passes the calculated winner, accumulated scores, and short statement logs to `/api/agent/referee`.
-- Prompt instructs the model to draft an explanation explaining:
-  - Strongest and weakest arguments for both sides.
-  - The match turning point.
-  - Why the winner scored higher.
-- Returns a clean JSON containing the final explanation text under 120 words.
+- **Prompt Guidelines**:
+  - Directs the model to address the user's latest claim directly: `${argument}`. Banned from changing topics.
+  - Required sequence: **Acknowledge User Point ➔ Challenge with Statistics ➔ Punchy Conclusion**.
+  - Limits length strictly to **50 words max** in one single paragraph.
+
+---
+
+## 🧠 Memory topic repetition Guard
+
+- Tracks previously discussed topic triggers (`world_cups`, `recent_form`, `defense`, `squad_depth`, `manager`, `star_players`) in the history transcript to instruct the AI opponent to focus on other angles.

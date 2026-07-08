@@ -176,3 +176,64 @@ export async function getEntityContext(entityName: string): Promise<string> {
     return "";
   }
 }
+
+export async function getEntitySectionContext(entityName: string, query: string): Promise<{ section: string; content: string }> {
+  try {
+    const normalized = entityName.toLowerCase().trim();
+    let fileName = "";
+    if (normalized.includes("messi")) fileName = "messi.md";
+    else if (normalized.includes("ronaldo")) fileName = "ronaldo.md";
+    else if (normalized.includes("mbappe") || normalized.includes("mbappé")) fileName = "mbappe.md";
+    else if (normalized.includes("haaland")) fileName = "haaland.md";
+    else if (normalized.includes("argentina")) fileName = "argentina.md";
+    else if (normalized.includes("brazil")) fileName = "brazil.md";
+
+    if (!fileName) {
+      return { section: "DEFAULT", content: "" };
+    }
+
+    const knowledgeDir = path.join(process.cwd(), "knowledge");
+    const filePath = path.join(knowledgeDir, fileName);
+    if (!fs.existsSync(filePath)) {
+      return { section: "DEFAULT", content: "" };
+    }
+
+    const fileContent = fs.readFileSync(filePath, "utf-8");
+
+    // Detect section based on query keywords
+    const q = query.toLowerCase();
+    let section = "TACTICS";
+    if (q.includes("history") || q.includes("origin") || q.includes("timeline") || q.includes("old") || q.includes("young") || q.includes("first") || q.includes("when") || q.includes("born") || q.includes("who") || q.includes("founder") || q.includes("began") || q.includes("start")) {
+      section = "HISTORY";
+    } else if (q.includes("record") || q.includes("stat") || q.includes("goal") || q.includes("assist") || q.includes("most") || q.includes("number")) {
+      section = "RECORDS";
+    } else if (q.includes("trophy") || q.includes("won") || q.includes("achieve") || q.includes("award") || q.includes("ballon") || q.includes("cup") || q.includes("copa") || q.includes("title")) {
+      section = "ACHIEVEMENTS";
+    } else if (q.includes("weak") || q.includes("loophole") || q.includes("fail") || q.includes("defeat") || q.includes("beat") || q.includes("lose") || q.includes("poor")) {
+      section = "WEAKNESSES";
+    }
+
+    // Extract section from segmented markdown file
+    const lines = fileContent.split("\n");
+    let insideSection = false;
+    const sectionLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith("## ")) {
+        const header = line.replace("## ", "").toUpperCase().trim();
+        if (header.includes(section)) {
+          insideSection = true;
+        } else {
+          insideSection = false;
+        }
+      } else if (insideSection) {
+        sectionLines.push(line);
+      }
+    }
+
+    const content = sectionLines.join("\n").trim();
+    return { section, content: content || fileContent.slice(0, 800) };
+  } catch (error) {
+    console.error("getEntitySectionContext error:", error);
+    return { section: "DEFAULT", content: "" };
+  }
+}

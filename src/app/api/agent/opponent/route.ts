@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { defaultModelProvider, DebateMessage } from "@/lib/qvac";
-import { getEntityContext } from "@/lib/retrieval";
+import { getEntitySectionContext } from "@/lib/retrieval";
 
 export async function POST(request: Request) {
   try {
@@ -15,10 +15,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required parameters: rival or argument" }, { status: 400 });
     }
 
-    // 1. Retrieve the exact target rival entity file (e.g. ronaldo.md, brazil.md)
-    const context = await getEntityContext(rival);
+    // 1. Retrieve segmented context using the query routing layer
+    const { section, content } = await getEntitySectionContext(rival, argument);
 
-    // 2. Format history and extract previous opponent topics to prevent repetition
+    // 2. Format history and extract previous opponent topics to prevent repetition (Topic memory)
     const usedTopics: string[] = [];
     if (history) {
       const historyStr = history.map(h => h.content.toLowerCase()).join(" ");
@@ -51,13 +51,14 @@ export async function POST(request: Request) {
       : "None yet.";
 
     const repetitionGuard = usedTopics.length > 0
-      ? `DO NOT discuss, repeat, or mention these topics: ${usedTopics.join(", ")}. Pivot to a different topic or statistic.`
-      : "Rebut the user directly.";
+      ? `DO NOT repeat or discuss these already used topics: ${usedTopics.join(", ")}. Focus on another statistic or trophy.`
+      : "Directly counter the user's claim.";
 
-    // 3. Compose specialised Opponent prompt with 15-40 words constraint
+    // 3. Compose specialised Opponent prompt with strict direct rebuttals
     const prompt = `You are a competitive supporter of TEAM ${rival.toUpperCase()} vs ${side.toUpperCase()}.
-Context (factual info about your team):
-${context || "None"}
+Routed Section: ${section}
+Factual Section Context (${section} section details):
+${content || "None"}
 
 History:
 ${formattedHistory}
@@ -65,15 +66,15 @@ User says: "${argument}"
 
 ${repetitionGuard}
 
-Write a sharp, competitive rebuttal.
-CRITICAL CONSTRAINTS:
-- Keep your response strictly between 15 and 40 words.
-- Attack only one User argument at a time.
-- Output exactly ONE single concise paragraph. Do NOT write multiple paragraphs, headers, or bullet points.`;
+Write a sharp, competitive rebuttal directly addressing the user's latest point.
+CRITICAL RULES:
+1. Every response must directly address and challenge the user's most recent statement: "${argument}". Do NOT change the topic or write generic football arguments.
+2. Structure your response precisely in this format: Acknowledge the point, Counter it with evidence, and state a brief Conclusion.
+3. Keep the entire response strictly under 50 words and output exactly ONE single paragraph. No lists or headers.`;
 
     // Debug logs
     console.log("Opponent Prompt Length:", prompt.length);
-    console.log("Opponent Mapping Entity:", rival);
+    console.log("Opponent Mapping Entity:", rival, "Routed Section:", section);
     console.log("Opponent Used Topics Memory:", usedTopics);
 
     // 4. Generate stream
@@ -100,8 +101,8 @@ CRITICAL CONSTRAINTS:
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
         "x-prompt-length": prompt.length.toString(),
-        "x-retrieval-length": context.length.toString(),
-        "x-retrieved-snippets": encodeURIComponent(context.slice(0, 150))
+        "x-retrieval-length": content.length.toString(),
+        "x-retrieved-snippets": encodeURIComponent(content.slice(0, 150))
       }
     });
 
