@@ -114,6 +114,44 @@ function AvatarIcon({ type, size = 10 }: { type: string; size?: number }) {
   );
 }
 
+function CelebrationConfetti() {
+  const colors = ["#fbbf24", "#38bdf8", "#f43f5e", "#10b981", "#a855f7", "#ffffff"];
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+      {Array.from({ length: 80 }).map((_, i) => {
+        const size = Math.random() * 8 + 6;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const left = Math.random() * 100;
+        const duration = Math.random() * 3 + 2;
+        const delay = Math.random() * 2;
+        return (
+          <motion.div
+            key={i}
+            className="absolute top-[-20px] rounded-sm"
+            style={{
+              left: `${left}%`,
+              width: size,
+              height: size,
+              backgroundColor: color,
+            }}
+            animate={{
+              y: ["0vh", "105vh"],
+              x: ["0px", `${Math.random() * 80 - 40}px`],
+              rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
+            }}
+            transition={{
+              duration: duration,
+              delay: delay,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function ArenaContent() {
   const searchParams = useSearchParams();
   const sideId = searchParams.get("side") || "messi";
@@ -185,7 +223,17 @@ function ArenaContent() {
     sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
     sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
   });
-  const [scoredExchangesCount, setScoredExchangesCount] = useState(0);
+  const [roundScores, setRoundScores] = useState<{
+    ROUND_1: { sideA: number; sideB: number };
+    ROUND_2: { sideA: number; sideB: number };
+    ROUND_3: { sideA: number; sideB: number };
+  }>({
+    ROUND_1: { sideA: 0, sideB: 0 },
+    ROUND_2: { sideA: 0, sideB: 0 },
+    ROUND_3: { sideA: 0, sideB: 0 }
+  });
+  const [animatedScoreA, setAnimatedScoreA] = useState(0);
+  const [animatedScoreB, setAnimatedScoreB] = useState(0);
   const [userTopics, setUserTopics] = useState<string[]>([]);
   const [opponentTopics, setOpponentTopics] = useState<string[]>([]);
 
@@ -303,6 +351,40 @@ function ArenaContent() {
   useEffect(() => {
     coachEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [lastCoachResponse, currentCoachTokenStream]);
+
+  // Count-up animation for the final total score
+  useEffect(() => {
+    if (activeStep === "WINNER") {
+      const finalA = roundScores.ROUND_1.sideA + roundScores.ROUND_2.sideA + roundScores.ROUND_3.sideA;
+      const finalB = roundScores.ROUND_1.sideB + roundScores.ROUND_2.sideB + roundScores.ROUND_3.sideB;
+      
+      setAnimatedScoreA(0);
+      setAnimatedScoreB(0);
+
+      let currentA = 0;
+      let currentB = 0;
+      const duration = 1500; // 1.5 seconds count up
+      const steps = 30;
+      const stepTime = duration / steps;
+      const incrementA = finalA / steps;
+      const incrementB = finalB / steps;
+
+      const timer = setInterval(() => {
+        currentA += incrementA;
+        currentB += incrementB;
+        if (currentA >= finalA && currentB >= finalB) {
+          setAnimatedScoreA(finalA);
+          setAnimatedScoreB(finalB);
+          clearInterval(timer);
+        } else {
+          setAnimatedScoreA(Math.min(finalA, Math.round(currentA)));
+          setAnimatedScoreB(Math.min(finalB, Math.round(currentB)));
+        }
+      }, stepTime);
+
+      return () => clearInterval(timer);
+    }
+  }, [activeStep, roundScores]);
 
   // Stage transition logic
   const handleStageTransition = () => {
@@ -493,11 +575,11 @@ function ArenaContent() {
     setUserMomentum(prev => Math.max(15, prev - Math.floor(rivalShift * 0.7)));
 
     // Score the current exchange in the background
-    handleScoreExchange(userText, finalOpponentText);
+    handleScoreExchange(userText, finalOpponentText, activeStep);
   };
 
   // Background scoring fetch per round exchange
-  const handleScoreExchange = async (userText: string, opponentText: string) => {
+  const handleScoreExchange = async (userText: string, opponentText: string, roundName: string) => {
     if (!data) return;
     try {
       const res = await fetch("/api/agent/referee", {
@@ -517,6 +599,9 @@ function ArenaContent() {
         sideB: { evidence: number; logic: number; relevance: number; persuasion: number };
       };
       
+      const scoreAVal = (scores.sideA.evidence ?? 0) + (scores.sideA.logic ?? 0) + (scores.sideA.relevance ?? 0) + (scores.sideA.persuasion ?? 0);
+      const scoreBVal = (scores.sideB.evidence ?? 0) + (scores.sideB.logic ?? 0) + (scores.sideB.relevance ?? 0) + (scores.sideB.persuasion ?? 0);
+
       setRunningScores(prev => ({
         sideA: {
           evidence: prev.sideA.evidence + (scores.sideA.evidence ?? 0),
@@ -531,7 +616,16 @@ function ArenaContent() {
           persuasion: prev.sideB.persuasion + (scores.sideB.persuasion ?? 0)
         }
       }));
-      setScoredExchangesCount(prev => prev + 1);
+
+      if (roundName === "ROUND_1" || roundName === "ROUND_2" || roundName === "ROUND_3") {
+        setRoundScores(prev => ({
+          ...prev,
+          [roundName]: {
+            sideA: prev[roundName].sideA + scoreAVal,
+            sideB: prev[roundName].sideB + scoreBVal
+          }
+        }));
+      }
     } catch (e) {
       console.error("[Background Scoring Error]", e);
     }
@@ -573,13 +667,21 @@ function ArenaContent() {
         content: f.content
       }));
 
-      // Calculate total points mathematically
-      const totalA = runningScores.sideA.evidence + runningScores.sideA.logic + runningScores.sideA.relevance + runningScores.sideA.persuasion;
-      const totalB = runningScores.sideB.evidence + runningScores.sideB.logic + runningScores.sideB.relevance + runningScores.sideB.persuasion;
+      // Calculate total points mathematically from roundScores
+      const totalA = roundScores.ROUND_1.sideA + roundScores.ROUND_2.sideA + roundScores.ROUND_3.sideA;
+      const totalB = roundScores.ROUND_1.sideB + roundScores.ROUND_2.sideB + roundScores.ROUND_3.sideB;
 
-      const winnerName = totalA >= totalB ? data.teamName : data.rival;
-      const winnerSide = totalA >= totalB ? data.teamName.toUpperCase() : data.rival.toUpperCase();
+      let winnerName = "Draw";
+      let winnerSide = "draw";
+      if (totalA > totalB) {
+        winnerName = data.teamName;
+        winnerSide = "user";
+      } else if (totalB > totalA) {
+        winnerName = opponentData ? opponentData.teamName : data.rival;
+        winnerSide = "opponent";
+      }
 
+      // We still ask the referee for match commentary / turning point
       const res = await fetch("/api/agent/referee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -587,46 +689,45 @@ function ArenaContent() {
           action: "explain",
           sideA: data.teamName,
           sideB: data.rival,
-          winner: winnerName,
+          winner: winnerName === "Draw" ? data.teamName : winnerName,
           sideAScores: runningScores.sideA,
           sideBScores: runningScores.sideB,
           history: historyPayload
         })
       });
 
-      if (!res.ok) throw new Error("Referee grading failed.");
-      const explainData = await res.json() as {
-        turningPoint: string;
-        bestUserArg: { quote: string; category: string; impact: string };
-        bestOpponentArg: { quote: string; category: string; impact: string };
-        weakestUserArg: { quote: string; reason: string };
-        weakestOpponentArg: { quote: string; reason: string };
-        categoryBreakdown: { evidence: string; logic: string; relevance: string; persuasion: string };
+      const explainData = {
+        turningPoint: winnerName === "Draw" 
+          ? "A highly balanced tactical clash ends with both sides sharing the spoils."
+          : `${winnerName} demonstrated superior control and precision during key exchanges to secure victory.`
       };
 
-      // Map accumulated metrics to the final 0-100 scoreboard
-      const count = Math.max(1, scoredExchangesCount);
-      const evidenceScore = Math.round((runningScores.sideA.evidence / (count * 10)) * 100);
-      const logicScore = Math.round((runningScores.sideA.logic / (count * 10)) * 100);
-      const persuasionScore = Math.round((runningScores.sideA.persuasion / (count * 10)) * 100);
-      const counteringScore = Math.round((runningScores.sideA.relevance / (count * 10)) * 100);
-      const overallScore = Math.round((totalA / (count * 40)) * 100);
+      if (res.ok) {
+        try {
+          const rawExplain = await res.json();
+          if (rawExplain.turningPoint) {
+            explainData.turningPoint = rawExplain.turningPoint;
+          }
+        } catch (e) {
+          console.warn("[Referee] Explanation parse failed, using fallback:", e);
+        }
+      }
 
       setRefereeResult({
         winner: winnerName,
         winnerSide: winnerSide,
-        evidenceScore,
-        logicScore,
-        persuasionScore,
-        counteringScore,
-        overallScore,
+        evidenceScore: totalA,
+        logicScore: totalB,
+        persuasionScore: 0,
+        counteringScore: 0,
+        overallScore: 0,
         verdict: "Outcome compiled.",
         turningPoint: explainData.turningPoint,
-        bestUserArg: explainData.bestUserArg,
-        bestOpponentArg: explainData.bestOpponentArg,
-        weakestUserArg: explainData.weakestUserArg,
-        weakestOpponentArg: explainData.weakestOpponentArg,
-        categoryBreakdown: explainData.categoryBreakdown
+        bestUserArg: { quote: "", category: "", impact: "" },
+        bestOpponentArg: { quote: "", category: "", impact: "" },
+        weakestUserArg: { quote: "", reason: "" },
+        weakestOpponentArg: { quote: "", reason: "" },
+        categoryBreakdown: { evidence: "", logic: "", relevance: "", persuasion: "" }
       });
       setActiveStep("WINNER");
 
@@ -640,26 +741,33 @@ function ArenaContent() {
       }));
     } catch (e: unknown) {
       console.error(e);
-      // Graceful fallback — never show error screen, synthesize a basic verdict
-      const count = Math.max(1, scoredExchangesCount);
-      const totalA = runningScores.sideA.evidence + runningScores.sideA.logic + runningScores.sideA.relevance + runningScores.sideA.persuasion;
-      const totalB = runningScores.sideB.evidence + runningScores.sideB.logic + runningScores.sideB.relevance + runningScores.sideB.persuasion;
-      const fallbackWinner = totalA >= totalB ? (data?.teamName || "Side A") : (data?.rival || "Side B");
+      const totalA = roundScores.ROUND_1.sideA + roundScores.ROUND_2.sideA + roundScores.ROUND_3.sideA;
+      const totalB = roundScores.ROUND_1.sideB + roundScores.ROUND_2.sideB + roundScores.ROUND_3.sideB;
+      let winnerName = "Draw";
+      let winnerSide = "draw";
+      if (totalA > totalB) {
+        winnerName = data.teamName;
+        winnerSide = "user";
+      } else if (totalB > totalA) {
+        winnerName = opponentData ? opponentData.teamName : data.rival;
+        winnerSide = "opponent";
+      }
+
       setRefereeResult({
-        winner: fallbackWinner,
-        winnerSide: fallbackWinner.toUpperCase(),
-        evidenceScore: Math.round((runningScores.sideA.evidence / (count * 10)) * 100),
-        logicScore: Math.round((runningScores.sideA.logic / (count * 10)) * 100),
-        persuasionScore: Math.round((runningScores.sideA.persuasion / (count * 10)) * 100),
-        counteringScore: Math.round((runningScores.sideA.relevance / (count * 10)) * 100),
-        overallScore: Math.round((totalA / (count * 40)) * 100),
+        winner: winnerName,
+        winnerSide: winnerSide,
+        evidenceScore: totalA,
+        logicScore: totalB,
+        persuasionScore: 0,
+        counteringScore: 0,
+        overallScore: 0,
         verdict: "Outcome compiled.",
-        turningPoint: `${fallbackWinner} demonstrated stronger overall debate performance based on accumulated exchange scores.`,
-        bestUserArg: { quote: debateFeed.filter(m => m.role === "user").slice(-2)[0]?.content?.slice(0, 80) || "Strong argument presented.", category: "Evidence", impact: "+7 Evidence" },
-        bestOpponentArg: { quote: debateFeed.filter(m => m.role === "assistant").slice(-2)[0]?.content?.slice(0, 80) || "Strong counterpoint presented.", category: "Logic", impact: "+7 Logic" },
-        weakestUserArg: { quote: debateFeed.filter(m => m.role === "user")[0]?.content?.slice(0, 80) || "Opening argument.", reason: "Opening argument lacked supporting statistics." },
-        weakestOpponentArg: { quote: debateFeed.filter(m => m.role === "assistant")[0]?.content?.slice(0, 80) || "Opening rebuttal.", reason: "Opening rebuttal was generic without addressing specifics." },
-        categoryBreakdown: { evidence: "Evidence quality was assessed per exchange.", logic: "Logical consistency maintained across rounds.", relevance: "Both sides stayed on topic.", persuasion: "Winner delivered arguments with greater confidence." }
+        turningPoint: `The match concluded with a final score of ${totalA} - ${totalB}.`,
+        bestUserArg: { quote: "", category: "", impact: "" },
+        bestOpponentArg: { quote: "", category: "", impact: "" },
+        weakestUserArg: { quote: "", reason: "" },
+        weakestOpponentArg: { quote: "", reason: "" },
+        categoryBreakdown: { evidence: "", logic: "", relevance: "", persuasion: "" }
       });
       setActiveStep("WINNER");
     } finally {
@@ -1382,132 +1490,174 @@ function ArenaContent() {
 
       {/* 5. POST-GAME ESPORTS CHAMPIONSHIP VERDICT */}
       {activeStep === "WINNER" && refereeResult && (
-        <div className="absolute inset-0 bg-[#020617]/98 backdrop-blur z-50 flex flex-col overflow-hidden h-screen max-h-screen text-slate-100 font-sans select-text">
+        <div className="absolute inset-0 bg-[#030712] z-50 flex flex-col overflow-y-auto h-screen max-h-screen text-slate-100 font-sans select-text relative">
+          
+          {/* Confetti Celebration */}
+          {refereeResult.winnerSide !== "draw" && <CelebrationConfetti />}
 
-          {/* ── CHAMPION REVEAL BANNER ────────────────────────────────── */}
-          <div className="relative bg-gradient-to-r from-amber-950/60 via-slate-950 to-amber-950/60 border-b border-amber-900/30 px-8 py-5 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
-            {/* Glow lines */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-900/50 to-transparent" />
+          {/* Radial Stadium Lighting Effect */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12)_0%,transparent_70%)] pointer-events-none" />
 
-            {/* Left: Winner identity */}
-            <div className="flex items-center gap-5">
-              <div className="relative shrink-0">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
-                  <Trophy className="w-8 h-8 text-slate-950" />
+          {/* Main Visual Arena Grid */}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 z-20 max-w-4xl mx-auto w-full">
+            
+            {/* Stadium Title */}
+            <motion.span 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[11px] text-amber-500 font-black uppercase tracking-[0.3em] font-display mb-1 block"
+            >
+              ⚽ GOAT Arena Match Verdict ⚽
+            </motion.span>
+
+            {/* Winner Announcement & Trophy */}
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
+              className="flex flex-col items-center mb-6"
+            >
+              {refereeResult.winnerSide === "draw" ? (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-2xl mb-4 border border-slate-700">
+                  <Swords className="w-10 h-10 text-slate-300" />
                 </div>
-                <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-slate-950 flex items-center justify-center text-[8px] font-black text-white">✓</span>
-              </div>
-              <div>
-                <span className="text-[9px] text-amber-400 font-bold uppercase tracking-widest font-display block mb-0.5">⚡ DEBATE CHAMPION</span>
-                <h2 className="text-3xl md:text-4xl font-black font-display text-white tracking-tight uppercase leading-none">
-                  {refereeResult.winner.toUpperCase()}
-                </h2>
-                <span className="text-xs text-slate-400 font-sans block mt-1">wins the debate by accumulated score</span>
-              </div>
-            </div>
-
-            {/* Right: Score badges */}
-            <div className="flex items-center gap-3 flex-wrap justify-center md:justify-end">
-              {[
-                { label: "EVIDENCE", score: refereeResult.evidenceScore, color: "text-blue-400", bg: "bg-blue-950/40 border-blue-900/40" },
-                { label: "LOGIC", score: refereeResult.logicScore, color: "text-purple-400", bg: "bg-purple-950/40 border-purple-900/40" },
-                { label: "RELEVANCE", score: refereeResult.counteringScore, color: "text-rose-400", bg: "bg-rose-950/40 border-rose-900/40" },
-                { label: "PERSUASION", score: refereeResult.persuasionScore, color: "text-amber-400", bg: "bg-amber-950/40 border-amber-900/40" },
-                { label: "OVERALL", score: refereeResult.overallScore, color: "text-white", bg: "bg-slate-900 border-slate-700" }
-              ].map(({ label, score, color, bg }) => (
-                <div key={label} className={`flex flex-col items-center ${bg} border rounded-xl px-3 py-2 min-w-[60px]`}>
-                  <span className={`text-xl font-black font-display ${color}`}>{score}</span>
-                  <span className="text-[8px] text-slate-500 font-bold font-display uppercase tracking-widest mt-0.5">{label}</span>
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500 flex items-center justify-center shadow-2xl shadow-amber-500/20 mb-4 relative">
+                  <Trophy className="w-12 h-12 text-slate-950" />
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+                    className="absolute inset-0 border-2 border-dashed border-amber-300 rounded-full scale-110 opacity-40"
+                  />
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          {/* ── SCROLLABLE ANALYSIS GRID ──────────────────────────────── */}
-          <div className="flex-1 grid grid-cols-12 gap-3 overflow-y-auto p-5 pb-3 scrollbar-thin min-h-0">
+              <h1 className="text-4xl md:text-5xl font-black font-display tracking-tight text-center uppercase leading-none text-white drop-shadow-md">
+                {refereeResult.winnerSide === "draw" 
+                  ? "IT'S A DRAW" 
+                  : `${refereeResult.winner.toUpperCase()} VICTORIOUS`
+                }
+              </h1>
+              
+              {refereeResult.winnerSide !== "draw" && (
+                <span className="text-xs text-slate-400 font-sans mt-2 block tracking-wider uppercase">
+                  🏆 The debate referee has crowned the champion 🏆
+                </span>
+              )}
+            </motion.div>
 
-            {/* Turning Point — full width */}
-            <div className="col-span-12 glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-purple-500 to-indigo-600 rounded-l-xl" />
-              <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest font-display block mb-2 pl-3">TURNING POINT</span>
-              <p className="text-sm text-slate-200 font-normal leading-relaxed italic pl-3 select-text">
-                &ldquo;{refereeResult.turningPoint}&rdquo;
-              </p>
-            </div>
+            {/* Stadium Large Scoreboard Count-up */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="bg-slate-950/60 border border-slate-900 rounded-3xl p-6 px-12 mb-8 flex items-center justify-center gap-10 shadow-3xl backdrop-blur-lg relative min-w-[320px]"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+              
+              {/* User side */}
+              <div className="flex flex-col items-center">
+                <AvatarIcon type={sideId} size={10} />
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-2 max-w-[80px] text-center truncate">
+                  {data.name}
+                </span>
+                <span className="text-4xl md:text-5xl font-black font-display text-blue-400 mt-1">
+                  {animatedScoreA}
+                </span>
+              </div>
 
-            {/* Score Breakdown bars — left col */}
-            <div className="col-span-12 md:col-span-4 glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl">
-              <span className="text-[8px] text-teal-400 font-bold uppercase tracking-widest font-display block mb-4">PERFORMANCE BREAKDOWN</span>
-              <div className="flex flex-col gap-3">
-                {[
-                  { label: "EVIDENCE", score: refereeResult.evidenceScore, from: "from-blue-500", to: "to-cyan-400", textColor: "text-blue-400", desc: refereeResult.categoryBreakdown.evidence },
-                  { label: "LOGIC", score: refereeResult.logicScore, from: "from-purple-500", to: "to-indigo-400", textColor: "text-purple-400", desc: refereeResult.categoryBreakdown.logic },
-                  { label: "RELEVANCE", score: refereeResult.counteringScore, from: "from-rose-500", to: "to-pink-400", textColor: "text-rose-400", desc: refereeResult.categoryBreakdown.relevance },
-                  { label: "PERSUASION", score: refereeResult.persuasionScore, from: "from-amber-500", to: "to-yellow-400", textColor: "text-amber-400", desc: refereeResult.categoryBreakdown.persuasion },
-                ].map(({ label, score, from, to, textColor, desc }) => (
-                  <div key={label}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-white uppercase text-[10px] font-display">{label}</span>
-                      <span className={`font-black text-xs font-display ${textColor}`}>{score}</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden mb-1">
-                      <div style={{ width: `${score}%` }} className={`h-full bg-gradient-to-r ${from} ${to} transition-all duration-1000`} />
-                    </div>
-                    <p className="text-[9px] text-slate-400 font-normal font-sans leading-normal select-text">{desc}</p>
+              {/* VS Divider */}
+              <span className="text-slate-700 font-black text-2xl font-display uppercase tracking-widest">VS</span>
+
+              {/* Opponent side */}
+              <div className="flex flex-col items-center">
+                <AvatarIcon type={opponentSideId} size={10} />
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-2 max-w-[80px] text-center truncate">
+                  {opponentData ? opponentData.name : data.rival}
+                </span>
+                <span className="text-4xl md:text-5xl font-black font-display text-rose-400 mt-1">
+                  {animatedScoreB}
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Match Summary Scorecard Card */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="bg-slate-950/50 border border-slate-900/80 backdrop-blur-md rounded-2xl overflow-hidden p-6 w-full max-w-lg mb-8 shadow-2xl relative"
+            >
+              <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-amber-500 to-yellow-600" />
+              
+              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest font-display block mb-4 border-b border-slate-900 pb-2">
+                📊 DETAILED MATCH SCORECARD
+              </span>
+
+              <div className="flex flex-col gap-4">
+                {/* Round 1 */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-bold text-slate-300 uppercase text-xs tracking-wider">ROUND 1</span>
+                  <div className="flex items-center gap-6 font-display">
+                    <span className="text-blue-400 font-black">{roundScores.ROUND_1.sideA} pts</span>
+                    <span className="text-slate-600 font-black">/</span>
+                    <span className="text-rose-400 font-black">{roundScores.ROUND_1.sideB} pts</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* User arguments — middle col */}
-            <div className="col-span-12 md:col-span-4 flex flex-col gap-3">
-              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex-1 flex flex-col">
-                <span className="text-[8px] text-blue-400 font-bold uppercase tracking-widest font-display block mb-2">BEST USER ARGUMENT</span>
-                <p className="text-xs text-slate-200 leading-relaxed font-sans italic select-text flex-1">&ldquo;{refereeResult.bestUserArg.quote}&rdquo;</p>
-                <div className="mt-3 pt-2 border-t border-slate-900/60 flex gap-3 items-center text-[9px] font-display flex-wrap">
-                  <span className="text-slate-500 uppercase">CAT:</span>
-                  <span className="text-blue-400 font-bold">{refereeResult.bestUserArg.category}</span>
-                  <span className="text-slate-500 uppercase">IMPACT:</span>
-                  <span className="text-green-400 font-bold">{refereeResult.bestUserArg.impact}</span>
+                {/* Round 2 */}
+                <div className="flex items-center justify-between text-sm border-t border-slate-900/60 pt-3">
+                  <span className="font-bold text-slate-300 uppercase text-xs tracking-wider">ROUND 2</span>
+                  <div className="flex items-center gap-6 font-display">
+                    <span className="text-blue-400 font-black">{roundScores.ROUND_2.sideA} pts</span>
+                    <span className="text-slate-600 font-black">/</span>
+                    <span className="text-rose-400 font-black">{roundScores.ROUND_2.sideB} pts</span>
+                  </div>
                 </div>
-              </div>
-              <div className="glass-panel p-4 border border-amber-900/20 bg-amber-950/5 rounded-xl flex-1 flex flex-col">
-                <span className="text-[8px] text-amber-500/80 font-bold uppercase tracking-widest font-display block mb-2">WEAKEST USER ARGUMENT</span>
-                <p className="text-xs text-slate-300 leading-relaxed font-sans italic select-text flex-1">&ldquo;{refereeResult.weakestUserArg.quote}&rdquo;</p>
-                <div className="mt-3 pt-2 border-t border-slate-900/60 text-[9px] font-sans flex items-start gap-1">
-                  <span className="font-display text-[9px] text-slate-500 uppercase shrink-0">WHY:</span>
-                  <span className="text-red-400 select-text">{refereeResult.weakestUserArg.reason}</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Opponent arguments — right col */}
-            <div className="col-span-12 md:col-span-4 flex flex-col gap-3">
-              <div className="glass-panel p-4 border border-slate-900 bg-slate-950/40 rounded-xl flex-1 flex flex-col">
-                <span className="text-[8px] text-red-400 font-bold uppercase tracking-widest font-display block mb-2">BEST RIVAL ARGUMENT</span>
-                <p className="text-xs text-slate-200 leading-relaxed font-sans italic select-text flex-1">&ldquo;{refereeResult.bestOpponentArg.quote}&rdquo;</p>
-                <div className="mt-3 pt-2 border-t border-slate-900/60 flex gap-3 items-center text-[9px] font-display flex-wrap">
-                  <span className="text-slate-500 uppercase">CAT:</span>
-                  <span className="text-red-400 font-bold">{refereeResult.bestOpponentArg.category}</span>
-                  <span className="text-slate-500 uppercase">IMPACT:</span>
-                  <span className="text-green-400 font-bold">{refereeResult.bestOpponentArg.impact}</span>
+                {/* Round 3 */}
+                <div className="flex items-center justify-between text-sm border-t border-slate-900/60 pt-3">
+                  <span className="font-bold text-slate-300 uppercase text-xs tracking-wider">ROUND 3</span>
+                  <div className="flex items-center gap-6 font-display">
+                    <span className="text-blue-400 font-black">{roundScores.ROUND_3.sideA} pts</span>
+                    <span className="text-slate-600 font-black">/</span>
+                    <span className="text-rose-400 font-black">{roundScores.ROUND_3.sideB} pts</span>
+                  </div>
+                </div>
+
+                {/* Final Total */}
+                <div className="flex items-center justify-between text-sm border-t border-amber-900/40 bg-amber-950/5 p-3 rounded-xl mt-1">
+                  <span className="font-black text-amber-400 uppercase text-xs tracking-wider">FINAL TOTAL</span>
+                  <div className="flex items-center gap-6 font-display text-base font-black">
+                    <span className="text-blue-400">{roundScores.ROUND_1.sideA + roundScores.ROUND_2.sideA + roundScores.ROUND_3.sideA}</span>
+                    <span className="text-amber-500/30">-</span>
+                    <span className="text-rose-400">{roundScores.ROUND_1.sideB + roundScores.ROUND_2.sideB + roundScores.ROUND_3.sideB}</span>
+                  </div>
                 </div>
               </div>
-              <div className="glass-panel p-4 border border-amber-900/20 bg-amber-950/5 rounded-xl flex-1 flex flex-col">
-                <span className="text-[8px] text-amber-500/80 font-bold uppercase tracking-widest font-display block mb-2">WEAKEST RIVAL ARGUMENT</span>
-                <p className="text-xs text-slate-300 leading-relaxed font-sans italic select-text flex-1">&ldquo;{refereeResult.weakestOpponentArg.quote}&rdquo;</p>
-                <div className="mt-3 pt-2 border-t border-slate-900/60 text-[9px] font-sans flex items-start gap-1">
-                  <span className="font-display text-[9px] text-slate-500 uppercase shrink-0">WHY:</span>
-                  <span className="text-red-400 select-text">{refereeResult.weakestOpponentArg.reason}</span>
-                </div>
-              </div>
-            </div>
+            </motion.div>
+
+            {/* Verdict commentary box */}
+            {refereeResult.turningPoint && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="bg-slate-900/20 border border-slate-900/50 rounded-xl p-4 w-full max-w-lg mb-4 text-center"
+              >
+                <span className="text-[8px] text-amber-500 font-bold uppercase tracking-wider block mb-1">
+                  📢 Referee Verdict Commentary
+                </span>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans italic">
+                  &ldquo;{refereeResult.turningPoint}&rdquo;
+                </p>
+              </motion.div>
+            )}
 
           </div>
 
-          {/* ── FOOTER ACTIONS ────────────────────────────────────────── */}
-          <footer className="border-t border-slate-900 px-6 py-3 flex gap-4 items-center shrink-0">
+          {/* Footer Actions */}
+          <footer className="border-t border-slate-900 bg-slate-950/80 px-6 py-4 flex gap-4 items-center justify-center shrink-0 w-full z-30 mt-auto">
             <button
               onClick={() => {
                 setDebateFeed([]);
@@ -1525,12 +1675,18 @@ function ArenaContent() {
                   sideA: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 },
                   sideB: { evidence: 0, logic: 0, relevance: 0, persuasion: 0 }
                 });
-                setScoredExchangesCount(0);
+                setRoundScores({
+                  ROUND_1: { sideA: 0, sideB: 0 },
+                  ROUND_2: { sideA: 0, sideB: 0 },
+                  ROUND_3: { sideA: 0, sideB: 0 }
+                });
+                setAnimatedScoreA(0);
+                setAnimatedScoreB(0);
                 setUserTopics([]);
                 setOpponentTopics([]);
                 setActiveStep("ARSENAL");
               }}
-              className="px-6 py-3 bg-slate-900 border border-slate-800 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:bg-slate-850 transition-all flex items-center gap-1.5"
+              className="px-6 py-3 bg-slate-900 border border-slate-800 text-white font-bold font-display text-xs tracking-wider rounded-xl hover:bg-slate-800 transition-all flex items-center gap-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               REPLAY MATCH
