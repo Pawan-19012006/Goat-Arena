@@ -274,7 +274,7 @@ Section-based retrieval keeps prompts small and efficient for local inference.
 
 ---
 
-## 1. Install QVAC
+## 1. Install QVAC CLI
 
 Install the QVAC CLI:
 
@@ -288,34 +288,30 @@ Verify installation:
 qvac --version
 ```
 
----
-
-## 2. Download the Required Model
+Validate your environment:
 
 ```bash
-qvac models pull llama-3.2-1b-instruct
+qvac doctor
 ```
 
-Verify the model is available:
+You should see:
 
-```bash
-qvac models list
+```text
+✅ All required checks passed.
 ```
-
-You should see the downloaded model in the output.
 
 ---
 
-## 3. Clone the Repository
+## 2. Clone the Repository
 
 ```bash
 git clone <repository-url>
-cd Goat-Arena
+cd goat-arena
 ```
 
 ---
 
-## 4. Install Project Dependencies
+## 3. Install Project Dependencies
 
 ```bash
 npm install
@@ -323,7 +319,7 @@ npm install
 
 ---
 
-## 5. Start the Application
+## 4. Start the Application
 
 ```bash
 npm run dev
@@ -341,8 +337,17 @@ http://localhost:3000
 
 - Node.js 22.17.0
 - npm 10.x
+- QVAC CLI 0.8.0
 - QVAC SDK 0.14.1
 - macOS Sequoia
+
+---
+
+## Notes
+
+- GOAT Arena runs entirely on-device using QVAC.
+- No external AI APIs are required.
+- No manual model download or `qvac models pull` step is required.
 
 ---
 
