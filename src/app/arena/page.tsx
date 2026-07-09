@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   Swords, Trophy, Shield, ArrowRight, RotateCcw, 
-  AlertTriangle, ChevronRight, Loader2, Send, Users
+  AlertTriangle, Loader2, Send, Users
 } from "lucide-react";
 import Link from "next/link";
 
@@ -190,7 +190,7 @@ function ArenaContent() {
   const [opponentTopics, setOpponentTopics] = useState<string[]>([]);
 
   // Debug mode states
-  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [isDebugMode] = useState(process.env.NEXT_PUBLIC_DEBUG_MODE === "true");
   const [debugStats, setDebugStats] = useState<{
     promptLength: number;
     retrievalLength: number;
@@ -699,16 +699,15 @@ function ArenaContent() {
   };
 
   const roundConfig = STAGE_CONFIG[activeStep as keyof typeof STAGE_CONFIG];
-  const roundLabel = roundConfig ? roundConfig.label : "REFEREE EVALUATION";
 
   return (
     <div className="h-screen max-h-screen overflow-hidden flex flex-col w-full px-4 py-4 relative select-none bg-slate-950 text-white">
       
-      {/* 1. Header HUD matched to valorant esports broadcast */}
-      <header className="w-full grid grid-cols-12 items-center border border-slate-900 bg-slate-950/95 backdrop-blur rounded-xl p-3 mb-4 relative overflow-hidden shadow-inner">
+      {/* 1. Redesigned Esports Broadcast HUD Header */}
+      <header className="w-full grid grid-cols-12 items-center border border-slate-900 bg-slate-950/95 backdrop-blur rounded-xl p-3 mb-4 relative overflow-hidden shadow-inner shrink-0">
         <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-blue-500/40 via-purple-500/20 to-red-500/40" />
         
-        {/* Left header: logo info */}
+        {/* Left column: Logo info */}
         <div className="col-span-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-red-500 flex items-center justify-center shadow">
             <Swords className="w-4 h-4 text-white" />
@@ -723,8 +722,9 @@ function ArenaContent() {
           </div>
         </div>
 
-        {/* Center header: battle matchup title & clock */}
+        {/* Center column: Matchup & Progress Timeline */}
         <div className="col-span-6 flex flex-col items-center">
+          {/* Matchup names */}
           <div className="flex items-center gap-4 mb-1">
             <span className="font-display text-base font-black tracking-widest text-blue-400 uppercase">
               {data.name}
@@ -735,57 +735,73 @@ function ArenaContent() {
             </span>
           </div>
 
-          {/* Active Round Stage */}
-          <div className="text-[9px] font-display font-bold text-purple-400 tracking-wider bg-purple-950/20 px-3 py-0.5 rounded-full border border-purple-900/30 uppercase mb-2">
-            {roundLabel}
+          {/* Moved & Redesigned progression timeline */}
+          <div className="flex items-center gap-1.5 md:gap-2.5 text-[9px] md:text-[10px] font-display font-black tracking-wider mt-1.5">
+            {[
+              { id: "ROUND_1", label: "ROUND 1" },
+              { id: "TIMEOUT_1", label: "TIMEOUT 1" },
+              { id: "ROUND_2", label: "ROUND 2" },
+              { id: "TIMEOUT_2", label: "TIMEOUT 2" },
+              { id: "ROUND_3", label: "ROUND 3" }
+            ].map((p, idx, arr) => {
+              const phases = arr.map(x => x.id);
+              const stepIndex = phases.indexOf(activeStep);
+              const isCurrent = activeStep === p.id;
+              const isCompleted = stepIndex > idx;
+              
+              return (
+                <div key={p.id} className="flex items-center gap-1">
+                  {idx > 0 && <span className="text-slate-800 font-bold mx-0.5">➔</span>}
+                  <div className={`px-2.5 py-1 rounded-md border transition-all ${
+                    isCurrent 
+                      ? "bg-purple-950/40 border-purple-500 text-white shadow shadow-purple-500/25 scale-105" 
+                      : isCompleted 
+                        ? "bg-green-950/20 border-green-900/30 text-green-400" 
+                        : "bg-slate-900/40 border-slate-900 text-slate-600 opacity-60"
+                  }`}>
+                    {isCompleted ? "✓ " : ""}{p.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right column: Broadcast clock, crowd stats, and QVAC badge */}
+        <div className="col-span-3 flex items-center justify-end gap-3 font-display">
+
+          {/* QVAC badge */}
+          <div className="flex items-center gap-1.5 bg-purple-950/20 border border-purple-900/30 px-2.5 py-1 rounded-lg text-purple-400 text-[9px] font-black tracking-wider">
+            <span className="w-1 h-1 rounded-full bg-purple-400 animate-pulse" />
+            QVAC LOCAL AI
           </div>
 
-          {/* Countdown timer HUD widget */}
-          {roundConfig && (
-            <div className="flex items-center gap-3 bg-slate-900/60 border border-slate-800 rounded-lg px-4 py-1.5 shadow-inner">
-              <span className="font-display text-xl font-bold tracking-widest text-white">
-                {formatTime(timeLeft)}
-              </span>
-              <span className="text-[8px] text-slate-500 font-semibold uppercase tracking-wider block border-l border-slate-800 pl-3">
-                REMAINING
-              </span>
-
-              {/* Skip fast forward debug button */}
+          {/* Broadcast Match Clock */}
+          {roundConfig ? (
+            <div className="flex items-center gap-2.5 bg-slate-900 border border-slate-850 rounded-lg px-2.5 py-1 shadow-inner">
+              <div className="flex flex-col items-end leading-none">
+                <span className="text-[6.5px] text-slate-500 font-bold uppercase tracking-widest font-display">CLOCK</span>
+                <span className="font-display text-sm font-black tracking-widest text-blue-400 mt-0.5">
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
               <button 
                 onClick={handleFastForward}
-                className="text-[8px] hover:text-white bg-slate-950 text-slate-500 font-display font-bold uppercase px-1.5 py-0.5 rounded border border-slate-850 hover:border-slate-750 shrink-0 ml-2"
-                title="Hackathon Demo Skip Timer"
+                className="text-[7.5px] font-display font-black text-slate-500 hover:text-white bg-slate-950 border border-slate-850 px-1.5 py-0.5 rounded hover:border-slate-750 transition-all shrink-0"
+                title="Demo Skip Timer"
               >
-                ⏩ FAST
+                ⏩ SKIP
               </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-850 px-2.5 py-1 rounded-lg text-slate-400 text-[9px] font-bold uppercase tracking-wider">
+              <span className="w-1 h-1 rounded-full bg-slate-700 animate-pulse" />
+              EVALUATING
             </div>
           )}
         </div>
-
-        {/* Right header: rules badge & status */}
-        <div className="col-span-3 flex items-center justify-end gap-3 font-display">
-          <button
-            onClick={() => setIsDebugMode(!isDebugMode)}
-            className={`px-3 py-1 rounded-full border text-[9px] font-bold transition-all ${
-              isDebugMode 
-                ? "bg-blue-900/40 border-blue-500 text-blue-400 shadow shadow-blue-500/10" 
-                : "bg-slate-900 border-slate-850 text-slate-500 hover:border-slate-750"
-            }`}
-          >
-            ⚙️ DEBUG {isDebugMode ? "ON" : "OFF"}
-          </button>
-          <div className="flex items-center gap-2 bg-red-950/30 border border-red-900/40 px-2.5 py-1 rounded-full text-red-400 text-[9px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            LIVE
-          </div>
-          <button 
-            onClick={() => setActiveStep("ARSENAL")}
-            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white hover:border-slate-700 transition-all text-[10px] font-bold uppercase tracking-wider"
-          >
-            Locker
-          </button>
-        </div>
       </header>
+
 
       {/* 2. Responsive 3-Column layout dashboard */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch min-h-0 overflow-hidden">
@@ -1217,79 +1233,8 @@ function ArenaContent() {
 
       </div>
 
-      {/* 3. Visual round progress timeline and double momentum footer */}
+      {/* 3. Double momentum stats bar footer */}
       <footer className="w-full mt-4 flex flex-col gap-3">
-        
-        {/* Progress tracker timeline */}
-        <div className="w-full flex items-center justify-between bg-slate-950 border border-slate-900 rounded-lg px-4 py-2 text-[8px] md:text-[9px] font-display font-bold text-slate-500 select-none overflow-x-auto scrollbar-none">
-          <div className="flex gap-4 items-center shrink-0">
-            <span className="text-slate-400 uppercase">TIMELINE:</span>
-            
-            <div className="flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] ${
-                activeStep !== "ARSENAL" ? "bg-green-500/20 text-green-400 border border-green-500/40" : "bg-slate-900 text-slate-500"
-              }`}>
-                {activeStep !== "ARSENAL" ? "✓" : "1"}
-              </span>
-              <span className={activeStep !== "ARSENAL" ? "text-green-400" : ""}>ROUND 1</span>
-            </div>
-            
-            <ChevronRight className="w-3 h-3 text-slate-900" />
-            
-            <div className="flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] ${
-                (activeStep !== "ARSENAL" && activeStep !== "ROUND_1") ? "bg-green-500/20 text-green-400 border border-green-500/40" : "bg-slate-900 text-slate-500"
-              }`}>
-                {(activeStep !== "ARSENAL" && activeStep !== "ROUND_1") ? "✓" : "2"}
-              </span>
-              <span className={(activeStep !== "ARSENAL" && activeStep !== "ROUND_1") ? "text-green-400" : ""}>TIMEOUT 1</span>
-            </div>
-
-            <ChevronRight className="w-3 h-3 text-slate-900" />
-
-            <div className="flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] ${
-                (activeStep === "ROUND_2" || activeStep === "TIMEOUT_2" || activeStep === "ROUND_3" || activeStep === "REFEREE" || activeStep === "WINNER") 
-                  ? "bg-blue-500 text-white font-black" 
-                  : "bg-slate-900 text-slate-650"
-              }`}>
-                3
-              </span>
-              <span className={(activeStep === "ROUND_2" || activeStep === "TIMEOUT_2" || activeStep === "ROUND_3" || activeStep === "REFEREE" || activeStep === "WINNER") ? "text-blue-400" : ""}>ROUND 2</span>
-            </div>
-
-            <ChevronRight className="w-3 h-3 text-slate-900" />
-
-            <div className="flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] ${
-                (activeStep === "TIMEOUT_2" || activeStep === "ROUND_3" || activeStep === "REFEREE" || activeStep === "WINNER") 
-                  ? "bg-blue-500 text-white font-black" 
-                  : "bg-slate-900 text-slate-650"
-              }`}>
-                4
-              </span>
-              <span className={(activeStep === "TIMEOUT_2" || activeStep === "ROUND_3" || activeStep === "REFEREE" || activeStep === "WINNER") ? "text-blue-400" : ""}>TIMEOUT 2</span>
-            </div>
-
-            <ChevronRight className="w-3 h-3 text-slate-900" />
-
-            <div className="flex items-center gap-2">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] ${
-                (activeStep === "ROUND_3" || activeStep === "REFEREE" || activeStep === "WINNER") 
-                  ? "bg-blue-500 text-white font-black" 
-                  : "bg-slate-900 text-slate-650"
-              }`}>
-                5
-              </span>
-              <span className={(activeStep === "ROUND_3" || activeStep === "REFEREE" || activeStep === "WINNER") ? "text-blue-400" : ""}>ROUND 3</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span>24,568 WATCHING CROWD</span>
-          </div>
-        </div>
 
         {/* Double-sided momentum horizontal stats bar */}
         <div className="w-full grid grid-cols-12 items-center bg-slate-950/80 border border-slate-900 rounded-lg p-3 relative overflow-hidden">
