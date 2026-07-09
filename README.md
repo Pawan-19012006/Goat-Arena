@@ -37,7 +37,7 @@
 ## 🎥 Demo Video
 
 <p align="center">
-  <a href="https://youtu.be/nv9e8LtHfP4">
+  <a href="https://youtu.be/u84R9EKBsTc">
     <img src="https://img.youtube.com/vi/nv9e8LtHfP4/maxresdefault.jpg" width="900" alt="GOAT Arena Demo">
   </a>
 </p>
