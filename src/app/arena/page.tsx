@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   Swords, Trophy, Shield, ArrowRight, RotateCcw, 
-  AlertTriangle, Loader2, Send, Users
+  AlertTriangle, Loader2, Send
 } from "lucide-react";
 import Link from "next/link";
 

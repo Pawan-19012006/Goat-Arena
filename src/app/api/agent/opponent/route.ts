@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { defaultModelProvider, DebateMessage } from "@/lib/qvac";
-import { getEntityMultiSectionContext } from "@/lib/retrieval";
+import { DEBATE_DATABASE } from "@/lib/debateDb";
+
+const ALL_CATEGORIES = [
+  "goals", "awards", "world_cup", "champions_league", "dribbling", "playmaking",
+  "passing", "assists", "leadership", "longevity", "league_adaptability",
+  "clutch_performances", "international_performance", "trophies", "records",
+  "consistency", "team_dependency", "physicality", "mentality", "peak_performance"
+];
 
 /**
  * Returns forbidden self-criticism keywords for an entity.
@@ -31,12 +38,56 @@ function getForbiddenKeywords(entityName: string): string[] {
 }
 
 /**
+ * Classifies a user's argument into one of the 20 debate categories.
+ * Deterministic regex/phrase keyword matching.
+ */
+function classifyArgument(text: string): string {
+  const clean = text.toLowerCase();
+  
+  if (clean.includes("world cup") || clean.includes("worldcup") || clean.includes(" wc ") || clean.includes("qatar")) return "world_cup";
+  if (clean.includes("champions league") || clean.includes("ucl") || clean.includes("european cup")) return "champions_league";
+  if (clean.includes("ballon") || clean.includes("award") || clean.includes("best player") || clean.includes("golden ball") || clean.includes("fifa best") || clean.includes("laureus")) return "awards";
+  if (clean.includes("golden boot") || clean.includes("goal") || clean.includes("goals") || clean.includes("scorer") || clean.includes("scoring") || clean.includes("score") || clean.includes("shoot")) return "goals";
+  if (clean.includes("assist") || clean.includes("assists") || clean.includes("setup")) return "assists";
+  if (clean.includes("dribble") || clean.includes("dribbling") || clean.includes("run") || clean.includes("takeon")) return "dribbling";
+  if (clean.includes("playmake") || clean.includes("playmaker") || clean.includes("chance") || clean.includes("vision")) return "playmaking";
+  if (clean.includes("pass") || clean.includes("passing") || clean.includes("cross")) return "passing";
+  if (clean.includes("leader") || clean.includes("captain") || clean.includes("lead") || clean.includes("leadership")) return "leadership";
+  if (clean.includes("longevity") || clean.includes("age") || clean.includes("years") || clean.includes("old") || clean.includes("season count")) return "longevity";
+  if (clean.includes("league") || clean.includes("adapt") || clean.includes("country") || clean.includes("countries") || clean.includes("different club")) return "league_adaptability";
+  if (clean.includes("clutch") || clean.includes("final") || clean.includes("knockout") || clean.includes("big game") || clean.includes("decisive")) return "clutch_performances";
+  if (clean.includes("national team") || clean.includes("copa") || clean.includes("euro")) return "international_performance";
+  if (clean.includes("trophy") || clean.includes("trophies") || clean.includes("cup") || clean.includes("titles") || clean.includes("won")) return "trophies";
+  if (clean.includes("record") || clean.includes("records") || clean.includes("all-time")) return "records";
+  if (clean.includes("consistent") || clean.includes("consistency") || clean.includes("every year")) return "consistency";
+  if (clean.includes("system") || clean.includes("xavi") || clean.includes("iniesta") || clean.includes("teammate") || clean.includes("team-dependent") || clean.includes("dependency")) return "team_dependency";
+  if (clean.includes("physical") || clean.includes("specimen") || clean.includes("height") || clean.includes("jump") || clean.includes("pace") || clean.includes("speed") || clean.includes("athlete") || clean.includes("height")) return "physicality";
+  if (clean.includes("mentality") || clean.includes("discipline") || clean.includes("work ethic") || clean.includes("willpower")) return "mentality";
+  if (clean.includes("peak") || clean.includes("prime") || clean.includes("best season") || clean.includes("2012")) return "peak_performance";
+  
+  return "general";
+}
+
+/**
+ * Maps entity name string to debate database key.
+ */
+function resolveEntityKey(name: string): string {
+  const clean = name.toLowerCase();
+  if (clean.includes("ronaldo")) return "ronaldo";
+  if (clean.includes("messi")) return "messi";
+  if (clean.includes("mbappe") || clean.includes("mbappé")) return "mbappe";
+  if (clean.includes("haaland")) return "haaland";
+  if (clean.includes("argentina")) return "argentina";
+  if (clean.includes("brazil")) return "brazil";
+  return "ronaldo";
+}
+
+/**
  * Trims a response to a maximum word count at the nearest sentence boundary.
  */
-function trimToWordLimit(text: string, maxWords = 80): string {
+function trimToWordLimit(text: string, maxWords = 120): string {
   const words = text.trim().split(/\s+/);
   if (words.length <= maxWords) return text.trim();
-  // Find last sentence boundary within limit
   const truncated = words.slice(0, maxWords).join(" ");
   const lastPeriod = Math.max(
     truncated.lastIndexOf("."),
@@ -75,10 +126,6 @@ function checkNonArgument(text: string, side: string): string | null {
   return null;
 }
 
-/**
- * Checks if the generated text praises the user's side, criticizes the opponent's own side,
- * or contains soft concessions / self-deprecating first-person phrases.
- */
 /**
  * Ensures name consistency, preventing hallucinated mutations like Rodrigo or Ronaldinho.
  */
@@ -163,17 +210,24 @@ function validateOpponentResponse(
   const u = userSide.toLowerCase().replace("team ", "").trim();
   const o = opponentSide.toLowerCase().replace("team ", "").trim();
 
-  // 1. Entity name locks & alias checks
+  // 1. Word Count Boundary Check (60-120 words)
+  const wordCount = text.trim().split(/\s+/).length;
+  if (wordCount < 50 || wordCount > 130) {
+    console.log(`[Validation] Word count out of bounds (${wordCount} words). Rejecting.`);
+    return false;
+  }
+
+  // 2. Entity name locks & alias checks
   if (!validateEntityNames(text, opponentSide)) {
     return false;
   }
 
-  // 2. Third person lock (no player roleplay)
+  // 3. Third person lock (no player roleplay)
   if (!validateThirdPerson(text)) {
     return false;
   }
 
-  // 3. Dynamic vocabulary memory check (no repeating key arguments within previous 3 turns)
+  // 4. Dynamic vocabulary memory check
   for (const word of dynamicForbidden) {
     if (t.includes(word)) {
       console.log(`[Repetition Validation] Re-use of recently used key reasoning word "${word}". Rejecting.`);
@@ -334,40 +388,34 @@ export async function POST(request: Request) {
     // 2. Resolve names
     const uName = side.replace("TEAM ", "").trim();
     const oName = rival.replace("TEAM ", "").trim();
-
-    // Determine relevant sections to pull for positive context (defense) and negative context (attack)
-    const argLower = argument.toLowerCase();
     
-    let opponentDefendSections = ["Strengths", "Debate Points"];
-    let userAttackSections = ["Counter Points", "Weaknesses"];
+    const rivalKey = resolveEntityKey(oName);
 
-    if (argLower.includes("defense") || argLower.includes("squad") || argLower.includes("depth") || argLower.includes("tactic") || argLower.includes("bench") || argLower.includes("manager") || argLower.includes("coach")) {
-      opponentDefendSections = ["Tactics", "Strengths"];
-    } else if (argLower.includes("goal") || argLower.includes("score") || argLower.includes("record") || argLower.includes("stat") || argLower.includes("assist") || argLower.includes("number")) {
-      opponentDefendSections = ["Records", "Strengths"];
-      userAttackSections = ["Weaknesses", "Counter Points"];
-    } else if (argLower.includes("trophy") || argLower.includes("won") || argLower.includes("achiev") || argLower.includes("award") || argLower.includes("ballon") || argLower.includes("cup") || argLower.includes("copa") || argLower.includes("title") || argLower.includes("ucl") || argLower.includes("champions league")) {
-      opponentDefendSections = ["Achievements", "Records"];
-      userAttackSections = ["Counter Points", "Weaknesses"];
-    } else if (argLower.includes("history") || argLower.includes("origin") || argLower.includes("born") || argLower.includes("founded")) {
-      opponentDefendSections = ["History", "Origins"];
-    } else if (argLower.includes("recent") || argLower.includes("form") || argLower.includes("current") || argLower.includes("season")) {
-      opponentDefendSections = ["Recent Form", "Strengths"];
+    // 3. Argument Classification Layer
+    let category = classifyArgument(argument);
+    console.log(`[Debate Engine] Classified User argument as category: "${category}"`);
+
+    // 4. Memory-based Category Selection (no reuse within last 3 turns)
+    const recentCategories = opponentTopics ? opponentTopics.slice(-3) : [];
+    if (category === "general" || recentCategories.includes(category)) {
+      const available = ALL_CATEGORIES.filter(cat => !recentCategories.includes(cat));
+      if (available.length > 0) {
+        category = available[0];
+        console.log(`[Debate Engine] Argument Memory clash or general fallback. Routed to category: "${category}"`);
+      } else {
+        category = "goals";
+      }
     }
 
-    // Retrieve positive points for opponent and negative points for user.
-    // SELF-WEAKNESS CONTEXT IS INTENTIONALLY EXCLUDED to avoid semantic leakage.
-    const defendContext = await getEntityMultiSectionContext(oName, opponentDefendSections);
-    const attackContext = await getEntityMultiSectionContext(uName, userAttackSections);
-    const totalContextLength = defendContext.length + attackContext.length;
+    // 5. Debate Database Retrieval (Deterministic facts/counterpoints loading)
+    const profile = DEBATE_DATABASE[rivalKey];
+    const point = profile ? profile[category] : null;
+    
+    const counterpoint = point ? point.counterpoint : `${oName} has superior statistics and trophies.`;
+    const supportingFact = point ? point.supportingFact : `${oName} is the greatest in international history.`;
+    const totalContextLength = counterpoint.length + supportingFact.length;
 
-    // 3. Memory guard against repeating topics
-    let repetitionGuard = "";
-    if (opponentTopics && opponentTopics.length > 0) {
-      repetitionGuard = `Do NOT repeat arguments about: ${opponentTopics.slice(-3).join(", ")}. Find a different angle.`;
-    }
-
-    // 4. Argument vocabulary memory to prevent reuse of key terms within previous 3 turns
+    // 6. Argument vocabulary memory to prevent reuse of key words within previous 3 turns
     const dynamicForbidden: string[] = [];
     if (history && history.length > 0) {
       const assistantMsgs = history
@@ -396,44 +444,37 @@ export async function POST(request: Request) {
       console.log("[Repetition Memory] Forbidden words for this turn:", dynamicForbidden);
     }
 
-    // 5. Redesigned System Prompt - Tribal, Biased Fan Persona + Third Person Locks
+    // 7. Redesigned System Prompt - Mandatory Rebuttal Framework
     const prompt = `You are a biased, cocky, and tribal supporter of ${oName}. You are debating a delusional fan of ${uName}.
-Your sole mission is to defend ${oName} at all costs and mock the user's claims. Speak like a passionate stadium fan, not a sports journalist.
+Your sole mission is to defend ${oName} at all costs, mock the user's claims, and speak in the third person.
 
----
-UNSHAKABLE FACTS PROVING ${oName} IS THE GOAT (Use these to build your case):
-${defendContext || "Use your general knowledge of " + oName}
+REQUIRED DEBATE STATEMENTS (You MUST build your response using these exact points):
+- Rebut the user's claim directly using this argument: "${counterpoint}"
+- Defend your side using this positive fact: "${supportingFact}"
 
----
-THE TRUTH ABOUT ${uName}'s WEAKNESSES AND FAILURES (Use these to mock and counter-attack):
-${attackContext || "Use your general knowledge of " + uName}
+The user just said: "${argument}"
 
----
-The user said: "${argument}"
-
-${repetitionGuard}
-
-Respond with ONE confident, sarcastic paragraph (30-60 words). 
-Dismiss the user's claim completely, target a weakness of ${uName}, and state one positive fact about ${oName} to secure victory.
+Respond with ONE confident, sarcastic paragraph (60-120 words).
 
 RULES:
-1. You are a passionate football fan defending ${oName}. Never roleplay as ${oName} or speak in the first person ("I", "my", "me" when referring to the player's achievements). Always speak in the third person ("he", "his", "${oName}").
-2. Never criticize ${oName}, never admit their weaknesses, and never say anything negative about them.
-3. Never agree with the user. Treat all criticism of ${oName} as absolute garbage.
-4. Be sarcastic, cocky, and relentless. No balanced analysis. No professionalism.
-5. No bullet points, no lists, no labels. Just one cohesive paragraph.
-6. Speak like a stubborn football fan in a stadium debate.`;
+1. You must start your response by directly challenging and refuting the user's statement. Address what they said immediately.
+2. After refuting, transition to explain why ${oName} is superior using the required positive fact.
+3. Speak strictly in the third person ("he", "his", "${oName}"). Never roleplay as the player or say "I scored", "my goals", or "we won".
+4. Never agree, concede, or use phrases like "that's true", "I agree", or "fair point".
+5. No bullet points, lists, or labels. Write one single cohesive paragraph.
+6. Make it sound cocky, sarcastic, and relentless. No balanced punditry.`;
 
     // Debug
     console.log("========================================");
     console.log("[DEBUG] Opponent Side Assignment:");
     console.log(`- userSide: ${side} | opponentSide: ${rival}`);
-    console.log(`- defendSections: ${opponentDefendSections.join(", ")}`);
-    console.log(`- attackSections: ${userAttackSections.join(", ")}`);
+    console.log(`- category: ${category}`);
+    console.log(`- counterpoint: ${counterpoint}`);
+    console.log(`- fact: ${supportingFact}`);
     console.log("========================================");
     console.log("Opponent Prompt Length:", prompt.length);
 
-    // 6. Generate with validation and generative correction loop
+    // 8. Generate with validation and generative correction loop
     let finalRebuttal = "";
     let validated = false;
     let attempts = 0;
@@ -451,11 +492,14 @@ RULES:
         const correctionPrompt = `You wrote a draft debate rebuttal defending ${oName} against ${uName} that violated rules by conceding points, speaking in the first person, using incorrect names, or repeating negative critiques of ${oName}.
 Draft: "${finalRebuttal}"
 
-Rewrite the draft completely to be 100% loyal, biased, and written in the third person (he/him/Ronaldo/Messi). Mock ${uName}'s failures, dismiss their criticisms of ${oName}, and assert ${oName}'s absolute superiority. Keep it under 60 words, one paragraph, no concessions, no self-criticisms. Do not explain your changes, just output the corrected paragraph.`;
+Required counterpoint to include: "${counterpoint}"
+Required fact to include: "${supportingFact}"
+
+Rewrite the draft completely to be 100% loyal, biased, and written in the third person (he/him/Ronaldo/Messi). Keep it between 60 and 120 words, one paragraph, no concessions, no self-criticisms. Start with a direct rebuttal, then defend. Do not explain your changes, just output the corrected paragraph.`;
         raw = await defaultModelProvider.generateText(correctionPrompt, []);
       }
       
-      finalRebuttal = trimToWordLimit(raw, 80);
+      finalRebuttal = trimToWordLimit(raw, 120);
       validated = validateOpponentResponse(finalRebuttal, side, rival, dynamicForbidden);
       if (!validated) {
         console.log(`[Validation Failed] Attempt ${attempts}: "${finalRebuttal}".`);
@@ -483,10 +527,10 @@ Rewrite the draft completely to be 100% loyal, biased, and written in the third 
         "Cache-Control": "no-cache",
         "x-prompt-length": prompt.length.toString(),
         "x-retrieval-length": totalContextLength.toString(),
-        "x-retrieved-snippets": encodeURIComponent(defendContext.slice(0, 150)),
+        "x-retrieved-snippets": encodeURIComponent(counterpoint.slice(0, 150)),
         "x-opponent-intent": "DEBATE_REBUTTAL",
-        "x-selected-file": rival.toLowerCase().trim() + ".md",
-        "x-selected-section": opponentDefendSections.join(", ")
+        "x-selected-file": category,
+        "x-selected-section": "debateDb"
       }
     });
 
