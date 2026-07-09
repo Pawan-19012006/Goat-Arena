@@ -375,6 +375,6 @@ Future improvements include:
 
 # 📄 License
 
-MIT License
+Apache License 2.0
 
 Created for the QVAC × Tether Hackathon 2026.
