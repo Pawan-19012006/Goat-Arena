@@ -17,7 +17,7 @@
 <img src="https://img.shields.io/badge/Local%20AI-On--Device-purple" alt="Local AI">
 <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
 <img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript">
-<img src="https://img.shields.io/badge/License-MIT-green" alt="MIT">
+<img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="Apache 2.0">
 <img src="https://img.shields.io/badge/QVAC%20x%20Tether-Hackathon-orange" alt="Hackathon">
 
 </div>
@@ -375,6 +375,6 @@ Future improvements include:
 
 # 📄 License
 
-MIT License
+Apache License 2.0
 
 Created for the QVAC × Tether Hackathon 2026.
