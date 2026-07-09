@@ -6,7 +6,10 @@ const ALL_CATEGORIES = [
   "goals", "awards", "world_cup", "champions_league", "dribbling", "playmaking",
   "passing", "assists", "leadership", "longevity", "league_adaptability",
   "clutch_performances", "international_performance", "trophies", "records",
-  "consistency", "team_dependency", "physicality", "mentality", "peak_performance"
+  "consistency", "team_dependency", "physicality", "mentality", "peak_performance",
+  "early_career", "academy_development", "youth_talent", "natural_ability", 
+  "fanbase", "influence", "popularity", "legacy", "career_start", "potential", 
+  "football_iq", "skill", "vision", "creativity", "technique"
 ];
 
 /**
@@ -38,19 +41,36 @@ function getForbiddenKeywords(entityName: string): string[] {
 }
 
 /**
- * Classifies a user's argument into one of the 20 debate categories.
+ * Classifies a user's argument into one of the 35 debate categories.
  * Deterministic regex/phrase keyword matching.
  */
 function classifyArgument(text: string): string {
   const clean = text.toLowerCase();
   
+  // Specific debuts, starts, early careers
+  if (clean.includes("debut") || clean.includes("early") || clean.includes("young") || clean.includes("start") || clean.includes("teenager") || clean.includes("age of")) return "early_career";
+  if (clean.includes("academy") || clean.includes("la masia") || clean.includes("sporting cp") || clean.includes("monaco") || clean.includes("salzburg") || clean.includes("youth")) return "academy_development";
+  if (clean.includes("talent") || clean.includes("prodigy") || clean.includes("wonderkid")) return "youth_talent";
+  if (clean.includes("natural") || clean.includes("gift") || clean.includes("born with")) return "natural_ability";
+  if (clean.includes("fanbase") || clean.includes("fans") || clean.includes("followers")) return "fanbase";
+  if (clean.includes("influence") || clean.includes("impact") || clean.includes("cultural")) return "influence";
+  if (clean.includes("popular") || clean.includes("popularity") || clean.includes("famous")) return "popularity";
+  if (clean.includes("legacy") || clean.includes("history books") || clean.includes("remembered")) return "legacy";
+  if (clean.includes("potential") || clean.includes("ceiling") || clean.includes("future")) return "potential";
+  if (clean.includes("iq") || clean.includes("intelligence") || clean.includes("smart") || clean.includes("reading the game")) return "football_iq";
+  if (clean.includes("skill") || clean.includes("skills") || clean.includes("tricks")) return "skill";
+  if (clean.includes("vision") || clean.includes("see the pass") || clean.includes("eye for")) return "vision";
+  if (clean.includes("create") || clean.includes("creative") || clean.includes("creativity")) return "creativity";
+  if (clean.includes("technique") || clean.includes("technical") || clean.includes("touch")) return "technique";
+
+  // General core categories
   if (clean.includes("world cup") || clean.includes("worldcup") || clean.includes(" wc ") || clean.includes("qatar")) return "world_cup";
   if (clean.includes("champions league") || clean.includes("ucl") || clean.includes("european cup")) return "champions_league";
   if (clean.includes("ballon") || clean.includes("award") || clean.includes("best player") || clean.includes("golden ball") || clean.includes("fifa best") || clean.includes("laureus")) return "awards";
   if (clean.includes("golden boot") || clean.includes("goal") || clean.includes("goals") || clean.includes("scorer") || clean.includes("scoring") || clean.includes("score") || clean.includes("shoot")) return "goals";
   if (clean.includes("assist") || clean.includes("assists") || clean.includes("setup")) return "assists";
   if (clean.includes("dribble") || clean.includes("dribbling") || clean.includes("run") || clean.includes("takeon")) return "dribbling";
-  if (clean.includes("playmake") || clean.includes("playmaker") || clean.includes("chance") || clean.includes("vision")) return "playmaking";
+  if (clean.includes("playmake") || clean.includes("playmaker") || clean.includes("chance")) return "playmaking";
   if (clean.includes("pass") || clean.includes("passing") || clean.includes("cross")) return "passing";
   if (clean.includes("leader") || clean.includes("captain") || clean.includes("lead") || clean.includes("leadership")) return "leadership";
   if (clean.includes("longevity") || clean.includes("age") || clean.includes("years") || clean.includes("old") || clean.includes("season count")) return "longevity";
@@ -61,7 +81,7 @@ function classifyArgument(text: string): string {
   if (clean.includes("record") || clean.includes("records") || clean.includes("all-time")) return "records";
   if (clean.includes("consistent") || clean.includes("consistency") || clean.includes("every year")) return "consistency";
   if (clean.includes("system") || clean.includes("xavi") || clean.includes("iniesta") || clean.includes("teammate") || clean.includes("team-dependent") || clean.includes("dependency")) return "team_dependency";
-  if (clean.includes("physical") || clean.includes("specimen") || clean.includes("height") || clean.includes("jump") || clean.includes("pace") || clean.includes("speed") || clean.includes("athlete") || clean.includes("height")) return "physicality";
+  if (clean.includes("physical") || clean.includes("specimen") || clean.includes("height") || clean.includes("jump") || clean.includes("pace") || clean.includes("speed") || clean.includes("athlete")) return "physicality";
   if (clean.includes("mentality") || clean.includes("discipline") || clean.includes("work ethic") || clean.includes("willpower")) return "mentality";
   if (clean.includes("peak") || clean.includes("prime") || clean.includes("best season") || clean.includes("2012")) return "peak_performance";
   
@@ -197,6 +217,128 @@ function validateThirdPerson(text: string): boolean {
 }
 
 /**
+ * Programmatic Stance Cross-Contamination Guard.
+ * Ensures the stats, academies, or achievements of one side are never credited to the other side.
+ */
+function checkStanceCrossContamination(text: string, userSide: string, opponentSide: string): boolean {
+  const t = text.toLowerCase();
+  const o = opponentSide.toLowerCase();
+
+  // If defending Ronaldo (opponentSide is Ronaldo)
+  if (o.includes("ronaldo")) {
+    const messiNames = ["messi", "lionel", "leo"];
+    const ronaldoStats = [
+      "890", "900", "140 goal", "140-goal", "champions league 5", "5 champions league", 
+      "5 ucl", "ucl 5", "saudi", "35 goal", "age 39", "39 year", "consecutive world cup", 
+      "consecutive world cups", "5 consecutive", "euro 2016", "nations league", 
+      "manchester united", "sporting cp", "real madrid", "serie a", "juventus"
+    ];
+    // Check if any Messi name and Ronaldo stat appear in the same sentence
+    const sentences = t.split(/[.!?]+/);
+    for (const s of sentences) {
+      const hasMessi = messiNames.some(name => s.includes(name));
+      const hasRonaldoStat = ronaldoStats.some(stat => s.includes(stat));
+      if (hasMessi && hasRonaldoStat) {
+        console.log(`[Stance Validation] Crossed association: Messi is linked with Ronaldo stat in: "${s.trim()}"`);
+        return false;
+      }
+    }
+  }
+
+  // If defending Messi (opponentSide is Messi)
+  if (o.includes("messi")) {
+    const ronaldoNames = ["ronaldo", "cristiano", "cr7"];
+    const messiStats = [
+      "8 ballon", "8 ballons", "eight ballon", "91 goal", "91 in 2012", "calendar year", 
+      "6 european golden", "6 golden shoe", "2022 world cup", "world cup golden ball", 
+      "44 team troph", "44 major", "44 troph", "most decorated", "barcelona", 
+      "la masia", "copa america", "copa américa", "inter miami", "mls"
+    ];
+    const sentences = t.split(/[.!?]+/);
+    for (const s of sentences) {
+      const hasRonaldo = ronaldoNames.some(name => s.includes(name));
+      const hasMessiStat = messiStats.some(stat => s.includes(stat));
+      if (hasRonaldo && hasMessiStat) {
+        console.log(`[Stance Validation] Crossed association: Ronaldo is linked with Messi stat in: "${s.trim()}"`);
+        return false;
+      }
+    }
+  }
+
+  // If defending Mbappe (opponentSide is Mbappe)
+  if (o.includes("mbappe") || o.includes("mbappé")) {
+    const haalandNames = ["haaland", "erling"];
+    const mbappeStats = [
+      "world cup at 19", "monaco", "psg", "hat-trick", "4 goal", "france", "nations league"
+    ];
+    const sentences = t.split(/[.!?]+/);
+    for (const s of sentences) {
+      const hasHaaland = haalandNames.some(name => s.includes(name));
+      const hasMbappeStat = mbappeStats.some(stat => s.includes(stat));
+      if (hasHaaland && hasMbappeStat) {
+        console.log(`[Stance Validation] Crossed association: Haaland is linked with Mbappe stat in: "${s.trim()}"`);
+        return false;
+      }
+    }
+  }
+
+  // If defending Haaland (opponentSide is Haaland)
+  if (o.includes("haaland")) {
+    const mbappeNames = ["mbappe", "mbappé", "kylian"];
+    const haalandStats = [
+      "single-season", "36 goal", "treble", "dortmund", "salzburg", "norway", "gerd muller"
+    ];
+    const sentences = t.split(/[.!?]+/);
+    for (const s of sentences) {
+      const hasMbappe = mbappeNames.some(name => s.includes(name));
+      const hasHaalandStat = haalandStats.some(stat => s.includes(stat));
+      if (hasMbappe && hasHaalandStat) {
+        console.log(`[Stance Validation] Crossed association: Mbappe is linked with Haaland stat in: "${s.trim()}"`);
+        return false;
+      }
+    }
+  }
+
+  // If defending Argentina (opponentSide is Argentina)
+  if (o.includes("argentina")) {
+    const brazilNames = ["brazil", "brazilian"];
+    const argentinaStats = [
+      "3 star", "3 world cup", "reigning champion", "unbeaten streak", "36-game", 
+      "romero", "otamendi", "scaloni", "martinez", "martínez"
+    ];
+    const sentences = t.split(/[.!?]+/);
+    for (const s of sentences) {
+      const hasBrazil = brazilNames.some(name => s.includes(name));
+      const hasArgentinaStat = argentinaStats.some(stat => s.includes(stat));
+      if (hasBrazil && hasArgentinaStat) {
+        console.log(`[Stance Validation] Crossed association: Brazil is linked with Argentina stat in: "${s.trim()}"`);
+        return false;
+      }
+    }
+  }
+
+  // If defending Brazil (opponentSide is Brazil)
+  if (o.includes("brazil")) {
+    const argentinaNames = ["argentina", "argentine"];
+    const brazilStats = [
+      "5 world cup", "5 time", "five world cup", "samba", "jogo bonito", 
+      "pele", "pelé", "neymar", "ronaldinho", "cafu", "thiago silva"
+    ];
+    const sentences = t.split(/[.!?]+/);
+    for (const s of sentences) {
+      const hasArgentina = argentinaNames.some(name => s.includes(name));
+      const hasBrazilStat = brazilStats.some(stat => s.includes(stat));
+      if (hasArgentina && hasBrazilStat) {
+        console.log(`[Stance Validation] Crossed association: Argentina is linked with Brazil stat in: "${s.trim()}"`);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
  * Checks if the generated text praises the user's side, criticizes the opponent's own side,
  * or contains soft concessions / self-deprecating first-person phrases.
  */
@@ -214,6 +356,11 @@ function validateOpponentResponse(
   const wordCount = text.trim().split(/\s+/).length;
   if (wordCount < 25 || wordCount > 95) {
     console.log(`[Validation] Word count out of bounds (${wordCount} words). Rejecting.`);
+    return false;
+  }
+
+  // 1.5 Stance locking validation check
+  if (!checkStanceCrossContamination(text, userSide, opponentSide)) {
     return false;
   }
 
@@ -343,6 +490,27 @@ function getFallbackRebuttal(rival: string): string {
 }
 
 /**
+ * Evaluates the relevance of the rebuttal to the user's statement.
+ * Rates how directly the rebuttal addresses and refutes the user.
+ * Returns a score from 0 to 10.
+ */
+async function getRelevanceScore(argument: string, rebuttal: string): Promise<number> {
+  const checkPrompt = `You are a debate judge. Rate how directly the rebuttal addresses and refutes the user's statement.
+User Statement: "${argument}"
+Rebuttal: "${rebuttal}"
+
+Output ONLY an integer score from 0 (ignores the user's point completely) to 10 (directly refutes the user's point). Do not write anything else.`;
+  try {
+    const rawScore = await defaultModelProvider.generateText(checkPrompt, []);
+    const parsedScore = parseInt(rawScore.trim().replace(/[^0-9]/g, ""), 10);
+    return isNaN(parsedScore) ? 8 : parsedScore;
+  } catch (err) {
+    console.error("[Relevance Judge] Evaluation error:", err);
+    return 8; // Fail-open on network/inference error
+  }
+}
+
+/**
  * AI Rival Legend (Opponent) Agent Route Handler.
  */
 export async function POST(request: Request) {
@@ -394,6 +562,29 @@ export async function POST(request: Request) {
     // 3. Argument Classification Layer
     let category = classifyArgument(argument);
     console.log(`[Debate Engine] Classified User argument as category: "${category}"`);
+
+    // Fallback Semantic Routing
+    if (category === "general") {
+      console.log("[Debate Engine] Keyword classifier returned 'general'. Running semantic classifier fallback...");
+      const classPrompt = `Classify this football debate argument into exactly one of these categories:
+Categories: [${ALL_CATEGORIES.join(", ")}]
+
+Argument: "${argument}"
+
+Output ONLY the category name matching one of the options above. Do not write anything else.`;
+      try {
+        const rawCat = await defaultModelProvider.generateText(classPrompt, []);
+        const parsedCat = rawCat.trim().toLowerCase().replace(/[^a-z_]/g, "");
+        if (ALL_CATEGORIES.includes(parsedCat)) {
+          category = parsedCat;
+          console.log(`[Debate Engine] Semantic classifier mapped argument to: "${category}"`);
+        } else {
+          console.log(`[Debate Engine] Semantic classifier returned invalid category "${parsedCat}". Mapping to general fallback.`);
+        }
+      } catch (err) {
+        console.error("[Debate Engine] Semantic classification failed:", err);
+      }
+    }
 
     // 4. Memory-based Category Selection (no reuse within last 3 turns)
     const recentCategories = opponentTopics ? opponentTopics.slice(-3) : [];
@@ -463,7 +654,8 @@ RULES:
 4. Speak strictly in the third person ("he", "his", "${oName}"). Never roleplay as the player (no "I scored", "my goals", or "we won").
 5. Never concede, agree, or say things like "good point", "that is true", or "fair point".
 6. Do NOT write fake quotes, fake interviews, or fake speeches (never say "Cristiano Ronaldo says...").
-7. Write only one paragraph. No bullet points, headers, or extra sentences.`;
+7. Write only one paragraph. No bullet points, headers, or extra sentences.
+8. STANCE LOCKING: You must NEVER associate the achievements, statistics, or clubs of ${oName} (such as: "${counterpoint}" or "${supportingFact}") with ${uName}. They belong solely to ${oName}. Do not state that ${uName} achieved them.`;
 
     // Debug
     console.log("========================================");
@@ -490,20 +682,30 @@ RULES:
       } else {
         // Generative self-correction check request
         console.log(`[Validation Correction] Running generative rewrite attempt ${attempts}...`);
-        const correctionPrompt = `You wrote a draft debate rebuttal defending ${oName} against ${uName} that violated rules by conceding points, speaking in the first person, using incorrect names, repeating negative critiques, or being too long.
+        const correctionPrompt = `You wrote a draft debate rebuttal defending ${oName} against ${uName} that violated rules by conceding points, speaking in the first person, using incorrect names, repeating negative critiques, attributing ${oName}'s stats to ${uName}, or being too long.
 Draft: "${finalRebuttal}"
 
 Required counterpoint to include: "${counterpoint}"
 Required fact to include: "${supportingFact}"
 
-Rewrite the draft completely to be 100% loyal, biased, and written in the third person. Make it highly sarcastic, direct, and very short (40-80 words, 2-4 sentences max). Do not explain your changes, just output the corrected paragraph.`;
+Rewrite the draft completely to be 100% loyal to ${oName}, biased, and written in the third person. Make it highly sarcastic, direct, and very short (40-80 words, 2-4 sentences max). Ensure you never attribute ${oName}'s stats, goals, or trophies to ${uName}. Do not explain your changes, just output the corrected paragraph.`;
         raw = await defaultModelProvider.generateText(correctionPrompt, []);
       }
       
       finalRebuttal = trimToWordLimit(raw, 95);
-      validated = validateOpponentResponse(finalRebuttal, side, rival, dynamicForbidden);
-      if (!validated) {
-        console.log(`[Validation Failed] Attempt ${attempts}: "${finalRebuttal}".`);
+      const basicValid = validateOpponentResponse(finalRebuttal, side, rival, dynamicForbidden);
+      
+      if (basicValid) {
+        console.log(`[Relevance Judge] Assessing relevance score for: "${finalRebuttal}"`);
+        const relevanceScore = await getRelevanceScore(argument, finalRebuttal);
+        console.log(`[Relevance Judge] Score: ${relevanceScore}/10`);
+        if (relevanceScore >= 7) {
+          validated = true;
+        } else {
+          console.log(`[Relevance Failed] Score ${relevanceScore} is below threshold 7. Regenerating.`);
+        }
+      } else {
+        console.log(`[Validation Failed] Basic filters failed on attempt ${attempts}.`);
       }
     }
 
