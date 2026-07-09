@@ -210,9 +210,9 @@ function validateOpponentResponse(
   const u = userSide.toLowerCase().replace("team ", "").trim();
   const o = opponentSide.toLowerCase().replace("team ", "").trim();
 
-  // 1. Word Count Boundary Check (60-120 words)
+  // 1. Word Count Boundary Check (Target 40-80 words, hard max 95 words)
   const wordCount = text.trim().split(/\s+/).length;
-  if (wordCount < 50 || wordCount > 130) {
+  if (wordCount < 25 || wordCount > 95) {
     console.log(`[Validation] Word count out of bounds (${wordCount} words). Rejecting.`);
     return false;
   }
@@ -444,25 +444,26 @@ export async function POST(request: Request) {
       console.log("[Repetition Memory] Forbidden words for this turn:", dynamicForbidden);
     }
 
-    // 7. Redesigned System Prompt - Mandatory Rebuttal Framework
-    const prompt = `You are a biased, cocky, and tribal supporter of ${oName}. You are debating a delusional fan of ${uName}.
-Your sole mission is to defend ${oName} at all costs, mock the user's claims, and speak in the third person.
+    // 7. Redesigned System Prompt - Sarcastic, Short Debate Rebuttal
+    const prompt = `You are a biased, cocky, and highly sarcastic football supporter of ${oName}. You are in a heated debate with a delusional fan of ${uName}.
+Your sole mission is to shut down the user's claims immediately with quick, direct banter. Speak like a fan in a heated social media debate, not a sports journalist.
 
-REQUIRED DEBATE STATEMENTS (You MUST build your response using these exact points):
-- Rebut the user's claim directly using this argument: "${counterpoint}"
+REQUIRED STATEMENTS (You MUST base your response on these exact points):
+- Rebut the user's claim using this argument: "${counterpoint}"
 - Defend your side using this positive fact: "${supportingFact}"
 
-The user just said: "${argument}"
+The user said: "${argument}"
 
-Respond with ONE confident, sarcastic paragraph (60-120 words).
+Respond with ONE short, sharp, and highly sarcastic paragraph (40-80 words, 2-4 sentences max).
 
 RULES:
-1. You must start your response by directly challenging and refuting the user's statement. Address what they said immediately.
-2. After refuting, transition to explain why ${oName} is superior using the required positive fact.
-3. Speak strictly in the third person ("he", "his", "${oName}"). Never roleplay as the player or say "I scored", "my goals", or "we won".
-4. Never agree, concede, or use phrases like "that's true", "I agree", or "fair point".
-5. No bullet points, lists, or labels. Write one single cohesive paragraph.
-6. Make it sound cocky, sarcastic, and relentless. No balanced punditry.`;
+1. You must start your response by directly refuting the user's statement. Be sarcastic and quick. Do not give any filler or introduction.
+2. Directly follow the rebuttal with a transition to explain why ${oName} is superior using the required positive fact.
+3. Keep the entire response between 40 and 80 words (Hard maximum 90 words).
+4. Speak strictly in the third person ("he", "his", "${oName}"). Never roleplay as the player (no "I scored", "my goals", or "we won").
+5. Never concede, agree, or say things like "good point", "that is true", or "fair point".
+6. Do NOT write fake quotes, fake interviews, or fake speeches (never say "Cristiano Ronaldo says...").
+7. Write only one paragraph. No bullet points, headers, or extra sentences.`;
 
     // Debug
     console.log("========================================");
@@ -489,17 +490,17 @@ RULES:
       } else {
         // Generative self-correction check request
         console.log(`[Validation Correction] Running generative rewrite attempt ${attempts}...`);
-        const correctionPrompt = `You wrote a draft debate rebuttal defending ${oName} against ${uName} that violated rules by conceding points, speaking in the first person, using incorrect names, or repeating negative critiques of ${oName}.
+        const correctionPrompt = `You wrote a draft debate rebuttal defending ${oName} against ${uName} that violated rules by conceding points, speaking in the first person, using incorrect names, repeating negative critiques, or being too long.
 Draft: "${finalRebuttal}"
 
 Required counterpoint to include: "${counterpoint}"
 Required fact to include: "${supportingFact}"
 
-Rewrite the draft completely to be 100% loyal, biased, and written in the third person (he/him/Ronaldo/Messi). Keep it between 60 and 120 words, one paragraph, no concessions, no self-criticisms. Start with a direct rebuttal, then defend. Do not explain your changes, just output the corrected paragraph.`;
+Rewrite the draft completely to be 100% loyal, biased, and written in the third person. Make it highly sarcastic, direct, and very short (40-80 words, 2-4 sentences max). Do not explain your changes, just output the corrected paragraph.`;
         raw = await defaultModelProvider.generateText(correctionPrompt, []);
       }
       
-      finalRebuttal = trimToWordLimit(raw, 120);
+      finalRebuttal = trimToWordLimit(raw, 95);
       validated = validateOpponentResponse(finalRebuttal, side, rival, dynamicForbidden);
       if (!validated) {
         console.log(`[Validation Failed] Attempt ${attempts}: "${finalRebuttal}".`);
