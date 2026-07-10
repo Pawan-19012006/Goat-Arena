@@ -423,10 +423,11 @@ function ArenaContent() {
     payload: Record<string, unknown>,
     setText: (t: string) => void,
     setStreaming: (s: boolean) => void
-  ): Promise<string> => {
+  ): Promise<{ text: string; category?: string }> => {
     setStreaming(true);
     setText("");
     let text = "";
+    let selFile: string | null = null;
     const startTime = performance.now();
     try {
       const res = await fetch(endpoint, {
@@ -441,7 +442,7 @@ function ArenaContent() {
       const rSnips = res.headers.get("x-retrieved-snippets");
       const cIntent = res.headers.get("x-coach-intent");
       const oIntent = res.headers.get("x-opponent-intent");
-      const selFile = res.headers.get("x-selected-file");
+      selFile = res.headers.get("x-selected-file");
       const selSec = res.headers.get("x-selected-section");
 
       setDebugStats(prev => ({
@@ -483,7 +484,7 @@ function ArenaContent() {
       const elapsed = Math.round(performance.now() - startTime);
       setDebugStats(prev => ({ ...prev, latency: elapsed }));
     }
-    return text;
+    return { text, category: selFile || undefined };
   };
 
   // Helper to identify topic categories from statements
@@ -534,7 +535,7 @@ function ArenaContent() {
     }));
 
     // Trigger opponent response stream
-    const finalOpponentText = await streamReader(
+    const oppResult = await streamReader(
       "/api/agent/opponent",
       {
         side: data.teamName,
@@ -547,6 +548,8 @@ function ArenaContent() {
       setCurrentOpponentTokenStream,
       setIsOpponentStreaming
     );
+    const finalOpponentText = oppResult.text;
+    const selectedCategory = oppResult.category;
 
     // Lock opponent message in feed
     setDebateFeed(prev => [...prev, {
@@ -556,14 +559,15 @@ function ArenaContent() {
     }]);
     setCurrentOpponentTokenStream("");
 
-    // Detect opponent topics
-    const newOList = detectTopics(finalOpponentText);
-    const updatedOpponentTopics = newOList.length > 0
-      ? Array.from(new Set([...opponentTopics, ...newOList]))
+    // Push the actual selected category to opponentTopics memory list
+    const updatedOpponentTopics = selectedCategory 
+      ? [...opponentTopics, selectedCategory] 
       : opponentTopics;
-    if (newOList.length > 0) {
+      
+    if (selectedCategory) {
       setOpponentTopics(updatedOpponentTopics);
     }
+
     setDebugStats(prev => ({
       ...prev,
       opponentMemory: JSON.stringify({ userTopics: currentUTopics, opponentTopics: updatedOpponentTopics })
@@ -639,12 +643,13 @@ function ArenaContent() {
     setLastCoachQuestion(questionText);
     setLastCoachResponse("");
 
-    const coachReply = await streamReader(
+    const coachResult = await streamReader(
       "/api/agent/coach",
       { side: data.teamName, question: questionText },
       setCurrentCoachTokenStream,
       setIsCoachStreaming
     );
+    const coachReply = coachResult.text;
 
     setLastCoachResponse(coachReply);
     setCurrentCoachTokenStream("");
