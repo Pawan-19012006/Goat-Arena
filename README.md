@@ -48,18 +48,16 @@
 
 # 📖 Table of Contents
 
-- Executive Summary
-- Why GOAT Arena?
-- Why QVAC?
-- What We Built
-- Meet The Agents
-- Arena Modes
-- System Architecture
-- Screenshots
-- Local Setup
-- Technical Stack
-- Future Roadmap
-- License
+- [🚀 Executive Summary](#-executive-summary)
+- [⚽ Why GOAT Arena Exists](#-why-goat-arena-exists)
+- [🧠 Why QVAC?](#-why-qvac)
+- [🤖 Agent Design](#-agent-design)
+- [🎮 Game Flow & Rounds](#-game-flow--rounds)
+- [🏆 Scoring System](#-scoring-system)
+- [🚀 Setup Instructions](#-setup-instructions)
+- [🏗️ System Architecture](#️-system-architecture)
+- [🗺️ Future Roadmap](#️-future-roadmap)
+- [📄 License](#-license)
 
 ---
 
@@ -176,94 +174,297 @@ No subscription required.
 The intelligence stack is completely local and customizable.
 
 ---
+# 🤖 Agent Design
 
-# 🏆 What We Built During The Hackathon
+GOAT Arena is powered by three specialized agents that intentionally have different personalities, capabilities, and responsibilities.
 
-## Arena Experience
+Rather than relying on a single general-purpose AI, each agent is optimized for a specific role inside the arena.
 
-- Rivalry Selection System
-- Arsenal Preparation Phase
-- Live Fan Battle Arena
-- Strategic Timeout System
-- Post-Match Verdict Screen
-
-## Multi-Agent System
-
-### Rival Legend
-
-Defends the opposing side.
-
-Challenges every argument.
-
-Never intentionally concedes.
+This creates a more balanced, competitive, and engaging debate experience.
 
 ---
 
-### Coach Finch
+## ⚔️ Rival Legend
 
-Private tactical assistant.
+### Role
 
-Available during strategic timeouts.
+Primary opponent.
 
-Provides:
+The Rival Legend exists to challenge the player and create a competitive football debate environment.
 
-- Facts
-- Historical context
-- Supporting points
-- Counter arguments
+### Design Philosophy
+
+Most AI assistants are designed to be helpful, agreeable, and cooperative.
+
+That approach creates boring debates.
+
+The Rival Legend was intentionally designed to be:
+
+- Competitive
+
+- Aggressive
+
+- Sarcastic
+
+- Entertaining
+
+- Confident
+
+- Relentless
+
+The agent aggressively defends its assigned football side and constantly attacks weaknesses in the player's arguments.
+
+### Responsibilities
+
+- Defend assigned football legend or team
+
+- Rebut player arguments
+
+- Challenge weak reasoning
+
+- Introduce supporting evidence
+
+- Maintain pressure throughout the debate
+
+### Goal
+
+Create the feeling of debating a passionate football fan who never backs down.
 
 ---
 
-### Arena Referee
+## 🦉 Coach Finch
 
-Neutral judge.
+### Role
 
-Evaluates:
+Strategic assistant.
 
-- Evidence
-- Logic
-- Persuasion
-- Relevance
+### Design Philosophy
 
-Generates structured match verdicts.
+Coach Finch was intentionally designed to be less capable than the Rival Legend.
 
-# 🏗️ System Architecture
+This decision was made to preserve game balance.
 
-```mermaid
-graph TD
+If Coach Finch generated perfect responses for every situation, the player would never need to think and the challenge would disappear.
 
-User --> UI
+Instead, Coach Finch acts like an assistant coach rather than a debate autopilot.
 
-UI --> RivalLegend
-UI --> CoachFinch
-UI --> ArenaReferee
+### Responsibilities
 
-RivalLegend --> QVAC
-CoachFinch --> QVAC
-ArenaReferee --> QVAC
+- Provide supporting facts
 
-QVAC --> LocalModel
+- Suggest counterarguments
 
-KnowledgeBase --> RivalLegend
-KnowledgeBase --> CoachFinch
-KnowledgeBase --> ArenaReferee
-```
+- Offer historical context
 
-## Knowledge Layer
+- Highlight weaknesses in opponent claims
+
+### Restrictions
+
+Coach Finch:
+
+- Does not directly debate
+
+- Does not generate complete winning responses
+
+- Does not replace player decision making
+
+- Only answers specific strategic questions
+
+### Goal
+
+Help players improve their arguments while keeping the game challenging and rewarding.
+
+---
+
+## 🏛️ Arena Referee
+
+### Role
+
+Independent judge.
+
+### Design Philosophy
+
+The Arena Referee never participates in the debate.
+
+Its responsibility is to evaluate every round objectively and determine the winner based on argument quality.
+
+### Responsibilities
+
+- Evaluate both participants
+
+- Score each round
+
+- Generate explanations
+
+- Produce the final verdict
+
+### Goal
+
+Create fair, transparent, and explainable debate outcomes.
+
+---
+
+# 🎮 Game Flow & Rounds
+
+Every debate follows a structured multi-round format.
+
+| Stage | Description |
+
+|---------|-------------|
+
+| Rivalry Selection | User chooses the football rivalry |
+
+| Side Selection | User selects a legend or national team |
+
+| Round 1 | Opening arguments |
+
+| Round 2 | Rebuttal phase |
+
+| Round 3 | Advanced counterarguments |
+
+| Strategic Timeout | Coach Finch becomes available |
+
+| Final Round | Closing statements |
+
+| Verdict | Arena Referee evaluates results |
+
+The structure transforms a normal chat interaction into a competitive football debate experience.
+
+---
+
+## 🎯 Playability Design
+
+GOAT Arena was designed as a game rather than a chatbot.
+
+Key gameplay principles include:
+
+| Feature | Purpose |
+
+|----------|----------|
+
+| Competitive Rival Agent | Creates challenge and replayability |
+
+| Strategic Timeout | Allows coaching without making the game trivial |
+
+| Multi-Round Format | Encourages argument development |
+
+| Structured Scoring | Creates clear win/loss conditions |
+
+| Football Knowledge Base | Grounds arguments in real football information |
+
+| Local AI Inference | Provides fast responses and privacy |
+
+---
+
+# 🏆 Scoring System
+
+The Arena Referee evaluates both participants independently during every round.
+
+Each round is scored across four categories.
+
+| Criteria | Description |
+
+|-----------|-------------|
+
+| Evidence | Use of facts, statistics, achievements, and historical examples |
+
+| Logic | Strength and consistency of reasoning |
+
+| Relevance | How well the response addresses the current debate topic |
+
+| Persuasion | Ability to convince and challenge the opponent |
+
+---
+
+## Round Scoring
+
+Each category receives a score from:
 
 ```text
-knowledge/
-├── messi.md
-├── ronaldo.md
-├── mbappe.md
-├── haaland.md
-├── argentina.md
-└── brazil.md
+
+0 - 10
+
 ```
 
-Section-based retrieval keeps prompts small and efficient for local inference.
+Maximum score per round:
+
+```text
+
+Evidence (10)
+
++ Logic (10)
+
++ Relevance (10)
+
++ Persuasion (10)
+
+= 40 Points
+
+```
+
+### Example
+
+| Criteria | Score |
+
+|-----------|--------|
+
+| Evidence | 8 |
+
+| Logic | 7 |
+
+| Relevance | 9 |
+
+| Persuasion | 8 |
+
+| Total | 32 / 40 |
 
 ---
+
+## Match Scoring
+
+Scores accumulate throughout the debate.
+
+```text
+
+Final Score
+
+=
+
+Round 1
+
++
+
+Round 2
+
++
+
+Round 3
+
++
+
+Final Round
+
+```
+
+The participant with the highest total score wins the arena.
+
+---
+
+## Why This Architecture Works
+
+The three-agent architecture creates a balanced experience:
+
+| Agent | Purpose |
+
+|---------|---------|
+
+| ⚔️ Rival Legend | Creates challenge |
+
+| 🦉 Coach Finch | Provides assistance |
+
+| 🏛️ Arena Referee | Ensures fairness |
+
+Together these agents transform football debates from simple chat interactions into a structured competitive game powered entirely by local-first AI.
 
 # 🚀 Setup Instructions
 
@@ -340,6 +541,44 @@ http://localhost:3000
 - QVAC CLI 0.8.0
 - QVAC SDK 0.14.1
 - macOS Sequoia
+
+---
+
+# 🏗️ System Architecture
+
+```mermaid
+graph TD
+
+User --> UI
+
+UI --> RivalLegend
+UI --> CoachFinch
+UI --> ArenaReferee
+
+RivalLegend --> QVAC
+CoachFinch --> QVAC
+ArenaReferee --> QVAC
+
+QVAC --> LocalModel
+
+KnowledgeBase --> RivalLegend
+KnowledgeBase --> CoachFinch
+KnowledgeBase --> ArenaReferee
+```
+
+## Knowledge Layer
+
+```text
+knowledge/
+├── messi.md
+├── ronaldo.md
+├── mbappe.md
+├── haaland.md
+├── argentina.md
+└── brazil.md
+```
+
+Section-based retrieval keeps prompts small and efficient for local inference.
 
 ---
 
