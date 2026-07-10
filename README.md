@@ -585,6 +585,7 @@ After startup:
 ✅ Rival Legend generates responses  
 ✅ Coach Finch provides coaching  
 ✅ Arena Referee produces scoring and verdicts
+
 ---
 
 # 🗺️ Future Roadmap
