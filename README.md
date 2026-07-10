@@ -6,13 +6,15 @@
 
 ### Defend Your Legend. Challenge the Rival. Conquer the Arena.
 
-*A Local-First Multi-Agent Football Fan Battlefield Powered Entirely by QVAC*
+**A Local-First Multi-Agent Football Debate Arena Powered by QVAC**
 
 <br>
 
 <a href="https://github.com/tetherto/qvac">
   <img src="https://raw.githubusercontent.com/tetherto/qvac/refs/heads/main/docs/branding/qvac-badge-green-dark.svg" alt="Built with QVAC">
 </a>
+
+<br>
 
 <img src="https://img.shields.io/badge/Local%20AI-On--Device-purple" alt="Local AI">
 <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
@@ -24,227 +26,207 @@
 
 ---
 
-<p align="center">
-
-*"Every football fan thinks they can win the argument.*
-
-*GOAT Arena finally gives them an opponent that fights back."*
-
-</p>
+> *"Every football fan thinks they can win the argument. GOAT Arena finally gives them an opponent that fights back."*
 
 ---
 
-## 🎥 Demo Video
+# 🎥 Demo
 
-<p align="center">
-  <a href="https://youtu.be/u84R9EKBsTc">
-    <img src="https://img.youtube.com/vi/nv9e8LtHfP4/maxresdefault.jpg" width="900" alt="GOAT Arena Demo">
-  </a>
-</p>
+<div align="center">
 
-<p align="center">
-  <b>Click the image above to watch the full demo</b>
-</p>
+<a href="https://youtu.be/u84R9EKBsTc">
+  <img src="https://img.youtube.com/vi/nv9e8LtHfP4/maxresdefault.jpg" width="900" alt="GOAT Arena Demo">
+</a>
+
+**Click the image above to watch the full demo**
+
+</div>
+
+---
 
 # 📖 Table of Contents
 
-- [🚀 Executive Summary](#-executive-summary)
-- [⚽ Why GOAT Arena Exists](#-why-goat-arena-exists)
-- [🧠 Why QVAC?](#-why-qvac)
-- [🤖 Agent Design](#-agent-design)
-- [🎮 Game Flow & Rounds](#-game-flow--rounds)
-- [🏆 Scoring System](#-scoring-system)
-- [🚀 Setup Instructions](#-setup-instructions)
-- [🏗️ System Architecture](#️-system-architecture)
-- [🗺️ Future Roadmap](#️-future-roadmap)
-- [📄 License](#-license)
+- [Overview](#-overview)
+- [Why GOAT Arena?](#-why-goat-arena)
+- [Why QVAC?](#-why-qvac)
+- [Agent Architecture](#-agent-architecture)
+  - [Rival Legend](#️-rival-legend)
+  - [Coach Finch](#-coach-finch)
+  - [Arena Referee](#️-arena-referee)
+- [Gameplay Flow](#-gameplay-flow)
+- [Scoring System](#-scoring-system)
+- [System Architecture](#️-system-architecture)
+- [Setup Guide](#-setup-guide)
+- [Future Roadmap](#-future-roadmap)
+- [License](#-license)
 
 ---
 
-# 🚀 Executive Summary
+# 🚀 Overview
 
-GOAT Arena is a local-first AI football fan battlefield built for the QVAC × Tether Hackathon.
+GOAT Arena is a **local-first AI football debate game** built for the **QVAC × Tether Hackathon**.
 
-Instead of arguing endlessly on social media, users enter a competitive arena where they must defend their football legends and national teams against intelligent AI s running entirely on-device.
+Instead of endless arguments on social media, fans enter a competitive arena where they must defend their football legends and national teams against intelligent AI opponents running entirely on-device.
 
-Users can enter iconic ries such as:
+### Popular Rivalries
 
 - Messi vs Ronaldo
 - Mbappé vs Haaland
 - Argentina vs Brazil
 
-The platform uses a multi-agent architecture powered by QVAC:
+### Powered by Three Specialized Agents
 
-- ⚔️ Rival Legend (Opponent Agent)
-- 🦉 Coach Finch (Strategic Assistant)
-- 🏛️ Arena Referee (Judge Agent)
+- ⚔️ **Rival Legend** — The opponent
+- 🦉 **Coach Finch** — Strategic advisor
+- 🏛️ **Arena Referee** — Independent judge
 
-Every rebuttal, coaching suggestion, and referee verdict is generated locally through QVAC.
+Every rebuttal, coaching suggestion, and verdict is generated locally through QVAC.
 
-No cloud APIs.
+### No Cloud Required
 
-No subscriptions.
-
-No external inference.
-
-Just local intelligence.
+✅ Local AI Inference  
+✅ No External APIs  
+✅ No Subscription Costs  
+✅ Privacy First  
+✅ Offline Capable
 
 ---
 
-# ⚽ Why GOAT Arena Exists
+# ⚽ Why GOAT Arena?
 
-Football fans argue everywhere.
+Football debates happen everywhere:
 
-Twitter.
+- X / Twitter
+- Reddit
+- WhatsApp
+- Discord
+- Watch Parties
+- Stadiums
 
-Reddit.
+The same questions keep returning:
 
-WhatsApp.
+- Who is the GOAT?
+- Which nation has the greatest football legacy?
+- Which player deserves the spotlight?
 
-Discord.
+Most debates eventually become repetitive opinion exchanges.
 
-Watch parties.
+GOAT Arena transforms those discussions into a structured competitive experience where users must defend their positions against a relentless AI challenger.
 
-Stadiums.
-
-The debates never end.
-
-Who is the GOAT?
-
-Which country has the better legacy?
-
-Which player deserves the spotlight?
-
-Most discussions end with opinions, noise, and repetition.
-
-GOAT Arena transforms these conversations into an interactive AI-powered fan battle experience.
-
-Instead of arguing with strangers online, fans battle a relentless AI opponent that never backs down.
-
-The result is a more engaging, competitive, and intelligent football discussion experience.
+Instead of arguing with strangers online, fans face an AI opponent that never backs down.
 
 ---
 
 # 🧠 Why QVAC?
 
-This project was intentionally designed around QVAC.
+GOAT Arena was intentionally designed around **QVAC's local-first AI architecture**.
 
-Most AI applications depend on:
+Traditional AI applications often depend on cloud infrastructure.
 
-| Traditional AI |
-|---------------|
-| Cloud APIs |
-| Internet Access |
-| Monthly Costs |
-| External Infrastructure |
-| User Data Leaving Device |
+| Traditional AI | GOAT Arena |
+|---------------|-------------|
+| Cloud APIs | Local Inference |
+| Internet Required | Offline Capable |
+| Usage Costs | Free to Run |
+| External Infrastructure | Fully Self-Contained |
+| Data Leaves Device | Privacy Preserved |
 
-GOAT Arena takes the opposite approach.
+---
 
-Everything runs locally.
+## 🔒 Privacy First
 
-## Why Local AI Matters
+All conversations remain on the user's device.
 
-### 🔒 Privacy First
+No football debates are sent to external servers.
 
-Arguments remain on the user's machine.
+---
 
-No conversations are sent to external servers.
+## 📴 Offline Gameplay
 
-### 📴 Offline Gameplay
+The arena works even without internet connectivity.
 
-The arena continues to function even without internet access.
+---
 
-### ⚡ Low Latency
+## ⚡ Low Latency
 
-No network round trips.
+No network requests.
 
 No API queues.
 
 Responses are generated directly on-device.
 
-### 💰 Zero Usage Cost
-
-Users own the experience.
-
-No subscription required.
-
-### 🛠️ Developer Ownership
-
-The intelligence stack is completely local and customizable.
-
 ---
-# 🤖 Agent Design
 
-GOAT Arena is powered by three specialized agents that intentionally have different personalities, capabilities, and responsibilities.
+## 💰 Zero Usage Cost
 
-Rather than relying on a single general-purpose AI, each agent is optimized for a specific role inside the arena.
+Once installed, users own the experience.
 
-This creates a more balanced, competitive, and engaging debate experience.
+No subscriptions required.
 
 ---
 
-## ⚔️ Rival Legend
+## 🛠️ Developer Control
 
-<p align="center">
+The entire intelligence stack remains local and customizable.
 
-  <img src="./public/images/rival%20legend.png" width="250" alt="Rival Legend">
+---
 
-</p>
+# 🤖 Agent Architecture
+
+GOAT Arena uses three specialized AI agents with distinct personalities and responsibilities.
+
+This separation creates a more engaging and balanced experience than a single general-purpose chatbot.
+
+---
+
+# ⚔️ Rival Legend
+
+<div align="center">
+
+<img src="./public/images/rival%20legend.png" width="280" alt="Rival Legend">
+
+</div>
 
 ### Role
 
-Primary opponent.
+The primary opponent.
 
-The Rival Legend exists to challenge the player and create a competitive football debate environment.
+### Personality
 
-### Design Philosophy
+Most AI assistants are designed to be helpful and agreeable.
 
-Most AI assistants are designed to be helpful, agreeable, and cooperative.
+That makes for terrible debates.
 
-That approach creates boring debates.
-
-The Rival Legend was intentionally designed to be:
+Rival Legend was intentionally designed to be:
 
 - Competitive
-
 - Aggressive
-
-- Sarcastic
-
-- Entertaining
-
 - Confident
-
+- Entertaining
 - Relentless
-
-The agent aggressively defends its assigned football side and constantly attacks weaknesses in the player's arguments.
+- Occasionally sarcastic
 
 ### Responsibilities
 
-- Defend assigned football legend or team
-
-- Rebut player arguments
-
-- Challenge weak reasoning
-
-- Introduce supporting evidence
-
-- Maintain pressure throughout the debate
+- Defend its assigned side
+- Challenge weak arguments
+- Introduce counterpoints
+- Apply constant pressure
+- Maintain debate intensity
 
 ### Goal
 
-Create the feeling of debating a passionate football fan who never backs down.
+Simulate debating a passionate football fan who refuses to concede.
 
 ---
 
-## 🦉 Coach Finch
+# 🦉 Coach Finch
 
-<p align="center">
+<div align="center">
 
-  <img src="./public/images/Coach%20FInch.png" width="250" alt="Coach Finch">
+<img src="./public/images/Coach%20FInch.png" width="280" alt="Coach Finch">
 
-</p>
+</div>
 
 ### Role
 
@@ -252,124 +234,103 @@ Strategic assistant.
 
 ### Design Philosophy
 
-Coach Finch was intentionally designed to be less capable than the Rival Legend.
+Coach Finch is intentionally less powerful than the Rival Legend.
 
-This decision was made to preserve game balance.
+If it generated perfect answers, players would no longer need to think critically.
 
-If Coach Finch generated perfect responses for every situation, the player would never need to think and the challenge would disappear.
-
-Instead, Coach Finch acts like an assistant coach rather than a debate autopilot.
+Instead, Coach Finch acts as an assistant coach rather than a debate autopilot.
 
 ### Responsibilities
 
-- Provide supporting facts
-
-- Suggest counterarguments
-
-- Offer historical context
-
-- Highlight weaknesses in opponent claims
+- Suggest supporting facts
+- Provide historical context
+- Highlight opponent weaknesses
+- Recommend counterarguments
 
 ### Restrictions
 
 Coach Finch:
 
-- Does not directly debate
-
+- Does not debate directly
 - Does not generate complete winning responses
-
-- Does not replace player decision making
-
-- Only answers specific strategic questions
+- Does not replace player decision-making
+- Only responds to strategic questions
 
 ### Goal
 
-Help players improve their arguments while keeping the game challenging and rewarding.
+Help players improve while preserving challenge and competitiveness.
 
 ---
 
-## 🏛️ Arena Referee
+# 🏛️ Arena Referee
 
-<p align="center">
+<div align="center">
 
-  <img src="./public/images/Arena%20Refree.png" width="250" alt="Arena Referee">
+<img src="./public/images/Arena%20Refree.png" width="280" alt="Arena Referee">
 
-</p>
+</div>
 
 ### Role
 
 Independent judge.
 
-### Design Philosophy
-
-The Arena Referee never participates in the debate.
-
-Its responsibility is to evaluate every round objectively and determine the winner based on argument quality.
-
 ### Responsibilities
 
-- Evaluate both participants
-
+- Evaluate both sides
 - Score each round
-
-- Generate explanations
-
-- Produce the final verdict
+- Explain decisions
+- Produce final verdicts
 
 ### Goal
 
-Create fair, transparent, and explainable debate outcomes.
+Deliver fair, transparent, and explainable outcomes.
+
+The referee never participates in the debate itself.
 
 ---
 
-# 🎮 Game Flow & Rounds
+# 🎮 Gameplay Flow
 
-Every debate follows a structured multi-round format.
+Every debate follows a structured competitive format.
 
 | Stage | Description |
 |---------|-------------|
-| Rivalry Selection | User chooses the football rivalry |
-| Side Selection | User selects a legend or national team |
+| Rivalry Selection | Choose a football rivalry |
+| Side Selection | Pick a player or national team |
 | Round 1 | Opening arguments |
 | Round 2 | Rebuttal phase |
 | Round 3 | Advanced counterarguments |
-| Strategic Timeout | Coach Finch becomes available |
+| Strategic Timeout | Consult Coach Finch |
 | Final Round | Closing statements |
-| Verdict | Arena Referee evaluates results |
+| Verdict | Arena Referee decides the winner |
 
-The structure transforms a normal chat interaction into a competitive football debate experience.
+This transforms a simple chat into a competitive football debate game.
 
 ---
 
-## 🎯 Playability Design
-
-GOAT Arena was designed as a game rather than a chatbot.
-
-Key gameplay principles include:
+## 🎯 Gameplay Principles
 
 | Feature | Purpose |
 |----------|----------|
-| Competitive Rival Agent | Creates challenge and replayability |
-| Strategic Timeout | Allows coaching without making the game trivial |
-| Multi-Round Format | Encourages argument development |
-| Structured Scoring | Creates clear win/loss conditions |
-| Football Knowledge Base | Grounds arguments in real football information |
-| Local AI Inference | Provides fast responses and privacy |
+| Rival Agent | Creates challenge and replayability |
+| Strategic Timeout | Provides assistance without removing difficulty |
+| Multi-Round Structure | Encourages deeper arguments |
+| Transparent Scoring | Creates clear win conditions |
+| Football Knowledge Base | Grounds responses in football facts |
+| Local AI | Fast, private, and offline-ready |
 
 ---
 
 # 🏆 Scoring System
 
-The Arena Referee evaluates both participants independently during every round.
+The Arena Referee evaluates every round using four categories.
 
-Each round is scored across four categories.
-
-| Criteria | Description |
+| Category | Description |
 |-----------|-------------|
-| Evidence | Use of facts, statistics, achievements, and historical examples |
-| Logic | Strength and consistency of reasoning |
-| Relevance | How well the response addresses the current debate topic |
-| Persuasion | Ability to convince and challenge the opponent |
+| Evidence | Statistics, achievements, and supporting facts |
+| Logic | Quality and consistency of reasoning |
+| Relevance | Alignment with the debate topic |
+| Persuasion | Ability to convince and challenge |
 
 ---
 
@@ -378,30 +339,23 @@ Each round is scored across four categories.
 Each category receives a score from:
 
 ```text
-
-0 - 10
-
+0 – 10
 ```
 
 Maximum score per round:
 
 ```text
+Evidence   (10)
+Logic      (10)
+Relevance  (10)
+Persuasion (10)
 
-Evidence (10)
-
-+ Logic (10)
-
-+ Relevance (10)
-
-+ Persuasion (10)
-
-= 40 Points
-
+Total = 40 Points
 ```
 
 ### Example
 
-| Criteria | Score |
+| Category | Score |
 |-----------|--------|
 | Evidence | 8 |
 | Logic | 7 |
@@ -413,121 +367,18 @@ Evidence (10)
 
 ## Match Scoring
 
-Scores accumulate throughout the debate.
+Scores accumulate across all rounds.
 
 ```text
-
 Final Score
-
 =
-
 Round 1
-
-+
-
-Round 2
-
-+
-
-Round 3
-
-+
-
-Final Round
-
++ Round 2
++ Round 3
++ Final Round
 ```
 
-The participant with the highest total score wins the arena.
-
----
-
-## Why This Architecture Works
-
-The three-agent architecture creates a balanced experience:
-
-| Agent | Purpose |
-|---------|---------|
-| ⚔️ Rival Legend | Creates challenge |
-| 🦉 Coach Finch | Provides assistance |
-| 🏛️ Arena Referee | Ensures fairness |
-
-Together these agents transform football debates from simple chat interactions into a structured competitive game powered entirely by local-first AI.
-
-# 🚀 Setup Instructions
-
-## Prerequisites
-
-- Node.js 22.x
-- npm 10.x
-
----
-
-## 1. Install QVAC CLI
-
-Install the QVAC CLI:
-
-```bash
-npm install -g @qvac/cli
-```
-
-Verify installation:
-
-```bash
-qvac --version
-```
-
-Validate your environment:
-
-```bash
-qvac doctor
-```
-
-You should see:
-
-```text
-✅ All required checks passed.
-```
-
----
-
-## 2. Clone the Repository
-
-```bash
-git clone <repository-url>
-cd goat-arena
-```
-
----
-
-## 3. Install Project Dependencies
-
-```bash
-npm install
-```
-
----
-
-## 4. Start the Application
-
-```bash
-npm run dev
-```
-
-Open:
-
-```text
-http://localhost:3000
-```
-
----
-
-## Tested Environment
-
-- Node.js 22.17.0
-- npm 10.x
-- QVAC CLI 0.8.0
-- QVAC SDK 0.14.1
-- macOS Sequoia
+The participant with the highest score wins the arena.
 
 ---
 
@@ -553,6 +404,8 @@ KnowledgeBase --> CoachFinch
 KnowledgeBase --> ArenaReferee
 ```
 
+---
+
 ## Knowledge Layer
 
 ```text
@@ -565,43 +418,123 @@ knowledge/
 └── brazil.md
 ```
 
-Section-based retrieval keeps prompts small and efficient for local inference.
+Section-based retrieval keeps prompts compact and efficient for local inference.
 
 ---
 
-## Notes
+## Why This Architecture Works
 
-- GOAT Arena runs entirely on-device using QVAC.
-- No external AI APIs are required.
-- No manual model download or `qvac models pull` step is required.
+| Agent | Purpose |
+|---------|---------|
+| ⚔️ Rival Legend | Creates challenge |
+| 🦉 Coach Finch | Provides assistance |
+| 🏛️ Arena Referee | Ensures fairness |
+
+Together they transform football debates into a structured competitive experience powered entirely by local AI.
 
 ---
 
-## Verification
+# 🚀 Setup Guide
+
+## Prerequisites
+
+- Node.js 22.x
+- npm 10.x
+
+---
+
+## 1. Install QVAC CLI
+
+```bash
+npm install -g @qvac/cli
+```
+
+Verify installation:
+
+```bash
+qvac --version
+```
+
+Validate your environment:
+
+```bash
+qvac doctor
+```
+
+Expected output:
+
+```text
+✅ All required checks passed.
+```
+
+---
+
+## 2. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd goat-arena
+```
+
+---
+
+## 3. Install Dependencies
+
+```bash
+npm install
+```
+
+---
+
+## 4. Run the Application
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## Tested Environment
+
+- Node.js 22.17.0
+- npm 10.x
+- QVAC CLI 0.8.0
+- QVAC SDK 0.14.1
+- macOS Sequoia
+
+---
+
+## Verification Checklist
 
 After startup:
 
-✅ Model loads successfully  
-✅ Rival Legend generates responses  
-✅ Coach Finch provides coaching  
-✅ Arena Referee produces scoring and verdicts
+- ✅ Model loads successfully
+- ✅ Rival Legend responds correctly
+- ✅ Coach Finch provides coaching
+- ✅ Arena Referee generates scores and verdicts
 
 ---
 
 # 🗺️ Future Roadmap
 
-Current version represents the MVP.
+The current release represents the MVP.
 
-Future improvements include:
+Planned enhancements include:
 
 - Football-specific model fine-tuning
-- Voice debates
+- Voice-enabled debates
 - Multiplayer fan battles
-- Tournament Mode
+- Tournament mode
 - Live crowd reactions
 - Additional rivalries
 - Larger local models
-- Enhanced retrieval pipeline
+- Enhanced retrieval pipelines
 
 ---
 
@@ -609,4 +542,14 @@ Future improvements include:
 
 Apache License 2.0
 
-Created for the QVAC × Tether Hackathon 2026.
+Built for the **QVAC × Tether Hackathon 2026**.
+
+---
+
+<div align="center">
+
+### ⚽ Defend Your Legend. Challenge the Rival. Conquer the Arena.
+
+**Powered entirely by QVAC.**
+
+</div>
