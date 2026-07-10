@@ -65,9 +65,9 @@
 
 GOAT Arena is a local-first AI football fan battlefield built for the QVAC × Tether Hackathon.
 
-Instead of arguing endlessly on social media, users enter a competitive arena where they must defend their football legends and national teams against intelligent AI rivals running entirely on-device.
+Instead of arguing endlessly on social media, users enter a competitive arena where they must defend their football legends and national teams against intelligent AI s running entirely on-device.
 
-Users can enter iconic rivalries such as:
+Users can enter iconic ries such as:
 
 - Messi vs Ronaldo
 - Mbappé vs Haaland
@@ -186,6 +186,12 @@ This creates a more balanced, competitive, and engaging debate experience.
 
 ## ⚔️ Rival Legend
 
+<p align="center">
+
+  <img src="./public/images/rival%20legend.png" width="250" alt="Rival Legend">
+
+</p>
+
 ### Role
 
 Primary opponent.
@@ -234,6 +240,12 @@ Create the feeling of debating a passionate football fan who never backs down.
 
 ## 🦉 Coach Finch
 
+<p align="center">
+
+  <img src="./public/images/Coach%20FInch.png" width="250" alt="Coach Finch">
+
+</p>
+
 ### Role
 
 Strategic assistant.
@@ -278,6 +290,12 @@ Help players improve their arguments while keeping the game challenging and rewa
 
 ## 🏛️ Arena Referee
 
+<p align="center">
+
+  <img src="./public/images/Arena%20Refree.png" width="250" alt="Arena Referee">
+
+</p>
+
 ### Role
 
 Independent judge.
@@ -309,23 +327,14 @@ Create fair, transparent, and explainable debate outcomes.
 Every debate follows a structured multi-round format.
 
 | Stage | Description |
-
 |---------|-------------|
-
 | Rivalry Selection | User chooses the football rivalry |
-
 | Side Selection | User selects a legend or national team |
-
 | Round 1 | Opening arguments |
-
 | Round 2 | Rebuttal phase |
-
 | Round 3 | Advanced counterarguments |
-
 | Strategic Timeout | Coach Finch becomes available |
-
 | Final Round | Closing statements |
-
 | Verdict | Arena Referee evaluates results |
 
 The structure transforms a normal chat interaction into a competitive football debate experience.
@@ -339,19 +348,12 @@ GOAT Arena was designed as a game rather than a chatbot.
 Key gameplay principles include:
 
 | Feature | Purpose |
-
 |----------|----------|
-
 | Competitive Rival Agent | Creates challenge and replayability |
-
 | Strategic Timeout | Allows coaching without making the game trivial |
-
 | Multi-Round Format | Encourages argument development |
-
 | Structured Scoring | Creates clear win/loss conditions |
-
 | Football Knowledge Base | Grounds arguments in real football information |
-
 | Local AI Inference | Provides fast responses and privacy |
 
 ---
@@ -363,15 +365,10 @@ The Arena Referee evaluates both participants independently during every round.
 Each round is scored across four categories.
 
 | Criteria | Description |
-
 |-----------|-------------|
-
 | Evidence | Use of facts, statistics, achievements, and historical examples |
-
 | Logic | Strength and consistency of reasoning |
-
 | Relevance | How well the response addresses the current debate topic |
-
 | Persuasion | Ability to convince and challenge the opponent |
 
 ---
@@ -405,17 +402,11 @@ Evidence (10)
 ### Example
 
 | Criteria | Score |
-
 |-----------|--------|
-
 | Evidence | 8 |
-
 | Logic | 7 |
-
 | Relevance | 9 |
-
 | Persuasion | 8 |
-
 | Total | 32 / 40 |
 
 ---
@@ -455,13 +446,9 @@ The participant with the highest total score wins the arena.
 The three-agent architecture creates a balanced experience:
 
 | Agent | Purpose |
-
 |---------|---------|
-
 | ⚔️ Rival Legend | Creates challenge |
-
 | 🦉 Coach Finch | Provides assistance |
-
 | 🏛️ Arena Referee | Ensures fairness |
 
 Together these agents transform football debates from simple chat interactions into a structured competitive game powered entirely by local-first AI.
